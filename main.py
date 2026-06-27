@@ -1,6 +1,7 @@
-from google import genai
 import os
 import json
+
+from google import genai
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -22,11 +23,7 @@ def home ():
 
 @app.post("/extract")
 def extract_contact(data: ContactInput):
-       result =process_text(data.text)
-       return {
-            "received_text":result,
-            "status" : "successfully received!"
-       }
+       return process_text(data.text)
 
 def process_text(text):
     prompt = f"""
@@ -41,38 +38,42 @@ If any information is missing, return null.
 Extract these fields:
 
 {{
-  "FullName": "",
-  "Email": "",
-  "PhoneNumber": "",
-  "AlternatePhone": "",
-  "Company": "",
-  "Designation": "",
-  "City": "",
-  "State": "",
-  "Country": "",
-  "Skills": [],
-  "Notes": ""
+    "FullName": "",
+    "Email": "",
+    "PhoneNumber": "",
+    "AlternatePhone": "",
+    "Company": "",
+    "Designation": "",
+    "City": "",
+    "State": "",
+    "Country": "",
+    "Skills": [],
+    "Notes": ""
 }}
 
 Resume Text:
-
 {text}
 """
+
     response = client.models.generate_content(
         model="gemini-2.5-flash",
         contents=prompt
     )
 
-    cleaned_response = response.text.replace("```json", "").replace("```", "").strip()
+    try:
+        cleaned_response = (
+            response.text
+            .replace("```json", "")
+            .replace("```", "")
+            .strip()
+        )
 
-    data = json.loads(cleaned_response)
+        data = json.loads(cleaned_response)
+        return data
 
-    return data
-
-   
-
-
- 
-
-
- 
+    except json.JSONDecodeError:
+        return {
+            "status": "error",
+            "message": "LLM returned invalid JSON.",
+            "raw_response": response.text
+        }
