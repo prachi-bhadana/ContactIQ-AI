@@ -1,5 +1,8 @@
-from file_reader import read_pdf
+import os
+from file_reader import read_docx
 
-text = read_pdf("input_files/resume.pdf")
+print("Current folder:", os.getcwd())
+print("File exists:", os.path.exists("input_files/resume.docx"))
 
+text = read_docx("input_files/test.docx")
 print(text)

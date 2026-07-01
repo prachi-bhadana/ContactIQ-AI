@@ -1,5 +1,6 @@
 import os
 import json
+from file_reader import read_pdf, read_docx
 
 from google import genai
 from dotenv import load_dotenv
@@ -9,6 +10,7 @@ load_dotenv()
 api_key= os.getenv("GEMINI_API_KEY")
 
 client= genai.Client(api_key=api_key)
+
 
 app = FastAPI()
 crm_contacts  =[]
@@ -118,6 +120,7 @@ Resume Text:
         )
 
         data = json.loads(cleaned_response)
+        return data
 
     except json.JSONDecodeError:
 
@@ -128,32 +131,42 @@ Resume Text:
         }
 
 
-        return data
+    
     
 def compare_contacts(contact1, contact2):
-
+    
     prompt = f"""
-You are an AI Entity Resolution Assistant.
+You are an AI Entity Resolution Assistant for a CRM system.
 
-Compare the following two CRM contacts.
+Your job is to determine whether two contacts represent the SAME PERSON.
 
-Determine whether they refer to the same person.
+Rules:
 
-Consider:
-- Full Name
-- Email
-- Phone Number
-- Company
-- Designation
-- LinkedIn
-- Other available information
+1. If Email matches exactly → SamePerson = true
 
-Return ONLY valid JSON in this format:
+2. If Phone Number matches exactly → SamePerson = true
+
+3. If LinkedIn matches → SamePerson = true
+
+4. If Full Name is slightly different
+(example:
+Prachi Bhadana
+Prachi Bhadanawala)
+
+AND Company OR Phone OR Email also match,
+then SamePerson = true.
+
+5. Ignore differences in capitalization.
+
+6. Be conservative.
+If information is insufficient, return SamePerson = false.
+
+Return ONLY valid JSON:
 
 {{
     "SamePerson": true,
-    "Confidence": 95,
-    "Reason": "Phone number and email match."
+    "Confidence": 98,
+    "Reason": ""
 }}
 
 Contact 1:
@@ -164,6 +177,7 @@ Contact 2:
 
 {contact2}
 """
+    
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
@@ -188,3 +202,21 @@ Contact 2:
             "message": "LLM returned invalid JSON.",
             "raw_response": response.text
         }
+folder = "input_files"
+
+for file in os.listdir(folder):
+    file_path = os.path.join(folder, file)
+
+    if file.endswith(".pdf"):
+        print(f"\nReading PDF: {file}")
+        text = read_pdf(file_path)
+        
+        contact = process_text(text)
+        print(contact)
+
+    elif file.endswith(".docx"):
+        print(f"\nReading DOCX: {file}")
+        text = read_docx(file_path)
+        
+        contact = process_text(text)
+        print(contact)
