@@ -6,7 +6,7 @@ from google import genai
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
-from database import engine, Base,SessionLocal
+from database import engine, Base, SessionLocal
 from models import Contact
 
 load_dotenv()
@@ -39,6 +39,7 @@ def home():
 def extract(data: ContactInput):
 
     new_contact = process_text(data.text)
+    db = SessionLocal()
 
     for existing_contact in crm_contacts:
 
@@ -52,7 +53,16 @@ def extract(data: ContactInput):
                 "comparison": result
             }
 
-    crm_contacts.append(new_contact)
+    contact = Contact(
+        full_name=new_contact.get("FullName"),
+        email=new_contact.get("Email"),
+        phone=new_contact.get("PhoneNumber"),
+        organization=new_contact.get("Company")
+    )
+
+    db.add(contact)
+    db.commit()
+    db.refresh(contact)
 
     return {
         "message": "New Contact Added Successfully",
@@ -88,26 +98,26 @@ Extract FirstName and LastName separately whenever possible.
 Return this exact JSON structure:
 
 {{
-    "FullName": "",
-    "FirstName": "",
-    "LastName": "",
-    "Email": "",
-    "AlternateEmail": "",
-    "PhoneNumber": "",
-    "AlternatePhone": "",
-    "Company": "",
-    "Designation": "",
-    "ExperienceYears": "",
-    "ExperienceMonths": "",
-    "Industry": "",
-    "City": "",
-    "State": "",
-    "Country": "",
-    "Nationality": "",
-    "LinkedIn": "",
-    "Website": "",
-    "Skills": [],
-    "Notes": ""
+"FullName": "",
+"FirstName": "",
+"LastName": "",
+"Email": "",
+"AlternateEmail": "",
+"PhoneNumber": "",
+"AlternatePhone": "",
+"Company": "",
+"Designation": "",
+"ExperienceYears": "",
+"ExperienceMonths": "",
+"Industry": "",
+"City": "",
+"State": "",
+"Country": "",
+"Nationality": "",
+"LinkedIn": "",
+"Website": "",
+"Skills": [],
+"Notes": ""
 }}
 
 Resume Text:
@@ -177,9 +187,9 @@ If information is insufficient, return SamePerson = false.
 Return ONLY valid JSON:
 
 {{
-    "SamePerson": true,
-    "Confidence": 98,
-    "Reason": ""
+"SamePerson": true,
+"Confidence": 98,
+"Reason": ""
 }}
 
 Contact 1:
