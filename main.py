@@ -4,7 +4,7 @@ from file_reader import read_pdf, read_docx
 
 from google import genai
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI , Query
 from pydantic import BaseModel
 from database import engine, Base, SessionLocal
 from models import Contact
@@ -36,10 +36,21 @@ def home():
 @app.get("/contacts")
 def get_contacts():
     db = SessionLocal()
-    contacts =db.query(contact).all()
+    contacts =db.query(Contact).all()
     return contacts
- 
 
+@app.get ("/contact/search")
+def search_contacts(
+    name: str = Query(None)
+):
+    db= SessionLocal()
+    
+    contacts= db.query(Contact).filter(
+        Contact.full_name ==name 
+    ).all()
+    
+    return contacts
+    
 @app.post("/extract")
 def extract(data: ContactInput):
 
