@@ -33,7 +33,12 @@ def home():
     return {
         "message": "welcome to ContactIQ AI"
     }
-
+@app.get("/contacts")
+def get_contacts():
+    db = SessionLocal()
+    contacts =db.query(contact).all()
+    return contacts
+ 
 
 @app.post("/extract")
 def extract(data: ContactInput):
