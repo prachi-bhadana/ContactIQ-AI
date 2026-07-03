@@ -6,27 +6,34 @@ from google import genai
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel
+from database import engine, Base,SessionLocal
+from models import Contact
+
 load_dotenv()
-api_key= os.getenv("GEMINI_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY")
 
-client= genai.Client(api_key=api_key)
-
+client = genai.Client(api_key=api_key)
 
 app = FastAPI()
-crm_contacts  =[]
+Base.metadata.create_all(bind=engine)
+crm_contacts = []
+
 
 class ContactInput(BaseModel):
     text: str
 
+
 class CompareInput(BaseModel):
-     contact1: dict
-     contact2: dict
+    contact1: dict
+    contact2: dict
+
 
 @app.get("/")
-def home ():
+def home():
     return {
-        "message":"welcome to ContactIQ AI"
-        }
+        "message": "welcome to ContactIQ AI"
+    }
+
 
 @app.post("/extract")
 def extract(data: ContactInput):
@@ -52,12 +59,14 @@ def extract(data: ContactInput):
         "contact": new_contact
     }
 
+
 @app.post("/compare")
 def compare(data: CompareInput):
     return compare_contacts(
         data.contact1,
         data.contact2
     )
+
 
 def process_text(text):
 
@@ -106,10 +115,17 @@ Resume Text:
 {text}
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
     try:
         cleaned_response = (
@@ -123,7 +139,6 @@ Resume Text:
         return data
 
     except json.JSONDecodeError:
-
         return {
             "status": "error",
             "message": "Invalid JSON returned by Gemini.",
@@ -131,10 +146,8 @@ Resume Text:
         }
 
 
-    
-    
 def compare_contacts(contact1, contact2):
-    
+
     prompt = f"""
 You are an AI Entity Resolution Assistant for a CRM system.
 
@@ -177,12 +190,18 @@ Contact 2:
 
 {contact2}
 """
-    
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt
+        )
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
     try:
         cleaned_response = (
@@ -194,14 +213,14 @@ Contact 2:
 
         return json.loads(cleaned_response)
 
-    
     except json.JSONDecodeError:
-
         return {
             "status": "error",
             "message": "LLM returned invalid JSON.",
             "raw_response": response.text
         }
+
+
 folder = "input_files"
 
 for file in os.listdir(folder):
@@ -210,13 +229,13 @@ for file in os.listdir(folder):
     if file.endswith(".pdf"):
         print(f"\nReading PDF: {file}")
         text = read_pdf(file_path)
-        
+
         contact = process_text(text)
         print(contact)
 
     elif file.endswith(".docx"):
         print(f"\nReading DOCX: {file}")
         text = read_docx(file_path)
-        
+
         contact = process_text(text)
         print(contact)
