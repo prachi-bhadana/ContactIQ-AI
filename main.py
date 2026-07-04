@@ -57,34 +57,47 @@ def extract(data: ContactInput):
     new_contact = process_text(data.text)
     db = SessionLocal()
 
-    for existing_contact in crm_contacts:
+    phone = new_contact.get("PhoneNumber")
+    email = new_contact.get("Email")
 
-        result = compare_contacts(new_contact, existing_contact)
+    existing_contact = None
 
-        if result.get("SamePerson"):
+    if phone:
+        existing_contact = db.query(Contact).filter(
+            Contact.phone == phone
+        ).first()
 
-            return {
-                "message": "Duplicate Contact Found",
-                "matched_contact": existing_contact,
-                "comparison": result
-            }
+    if not existing_contact and email:
+        existing_contact = db.query(Contact).filter(
+            Contact.email == email
+        ).first()
 
-    contact = Contact(
+    if not phone and not email:
+        return {
+            "message": "Contact skipped because phone and email are missing."
+        }
+
+    if existing_contact:
+        return {
+            "message": "Duplicate contact found.",
+            "existing_contact": existing_contact.full_name
+        }
+
+    new_db_contact = Contact(
         full_name=new_contact.get("FullName"),
-        email=new_contact.get("Email"),
-        phone=new_contact.get("PhoneNumber"),
-        organization=new_contact.get("Company")
+        phone=phone,
+        email=email
     )
 
-    db.add(contact)
+    db.add(new_db_contact)
     db.commit()
-    db.refresh(contact)
+    db.refresh(new_db_contact)
 
     return {
-        "message": "New Contact Added Successfully",
-        "contact": new_contact
+        "message": "Contact saved successfully.",
+        "contact": new_db_contact.full_name
     }
-
+    
 
 @app.post("/compare")
 def compare(data: CompareInput):
