@@ -18,6 +18,8 @@ app = FastAPI()
 Base.metadata.create_all(bind=engine)
 crm_contacts = []
 
+processing_logs= []
+
 
 class ContactInput(BaseModel):
     text: str
@@ -156,6 +158,7 @@ def compare(data: CompareInput):
         data.contact1,
         data.contact2
     )
+    
 
 @app.post("/process-folder")
 def process_folder():
@@ -186,6 +189,12 @@ def process_folder():
               continue
 
             save_contact(contact)
+            
+            
+            processing_logs.append({
+                "file" : file ,
+                "status" : "success"
+            })
 
         elif file.endswith(".docx"):
             print("DOCX Found")
@@ -199,12 +208,19 @@ def process_folder():
                 continue
 
             save_contact(contact)
+            
+            processing_logs.append({
+                "file" : file ,
+                "status" : "success"
+            })
 
     return {
                 "message": "Folder processed successfully"
                 }
     
-    
+@app.get("/logs")
+def get_logs():
+    return processing_logs
     
 def process_text(text):
 
