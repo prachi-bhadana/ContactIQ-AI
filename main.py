@@ -19,7 +19,7 @@ Base.metadata.create_all(bind=engine)
 crm_contacts = []
 
 processing_logs= []
-
+processed_files = set()
 
 class ContactInput(BaseModel):
     text: str
@@ -163,56 +163,79 @@ def compare(data: CompareInput):
 @app.post("/process-folder")
 def process_folder():
     
+    print(processed_files)
+    print(processing_logs)
+    
     
     folder = "input_files"
     
 
     for file in os.listdir(folder):
-        
-        print(file)
-
-        file_path = os.path.join(folder, file)
-        
-        if not os.path.isfile(file_path):
-            continue
-
-        if file.endswith(".pdf"):
-            print("PDF Found")
-
-            text = read_pdf(file_path)
-            print("PDF Read Successfully")
-
-            
-            contact = process_text(text)
-
-            if contact.get("status") == "error":
-              continue
-
-            save_contact(contact)
-            
+        if file in processed_files:
+            print(f"skipping{file}")
             
             processing_logs.append({
-                "file" : file ,
-                "status" : "success"
+                "file": file ,
+                "status":"skipped"
             })
+            continue
+        
+        try :
+            file_path = os.path.join(folder,file)
+        
+            print(file)
 
-        elif file.endswith(".docx"):
-            print("DOCX Found")
-
-            text = read_docx(file_path)
-            print("DOCX Read Successfully")
-
-            contact = process_text(text)
-
-            if contact.get("status") == "error":
+            file_path = os.path.join(folder, file)
+            
+            if not os.path.isfile(file_path):
                 continue
 
-            save_contact(contact)
+            if file.endswith(".pdf"):
+                print("PDF Found")
+
+                text = read_pdf(file_path)
+                print("PDF Read Successfully")
+
+                
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                 continue
+
+                save_contact(contact)
+                processed_files.add(file)
+                
+                
+                processing_logs.append({
+                    "file" : file ,
+                    "status" : "success"
+                })
+
+            elif file.endswith(".docx"):
+                print("DOCX Found")
+
+                text = read_docx(file_path)
+                print("DOCX Read Successfully")
+
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    continue
+
+                save_contact(contact)
+                processed_files.add(file)
+                
+                processing_logs.append({
+                    "file" : file ,
+                    "status" : "success"
+                })
             
+        except Exception as e :
             processing_logs.append({
-                "file" : file ,
-                "status" : "success"
-            })
+                "file":file , 
+                "status": "failed",
+                "error": str(e)
+        })
 
     return {
                 "message": "Folder processed successfully"
