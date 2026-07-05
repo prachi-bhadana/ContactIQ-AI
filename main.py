@@ -55,10 +55,30 @@ def search_contacts(
 def extract(data: ContactInput):
 
     new_contact = process_text(data.text)
+    if new_contact.get("status")=="error":
+        return new_contact
+    
+    
+    
+    print(new_contact)
     db = SessionLocal()
 
     phone = new_contact.get("PhoneNumber")
+    if phone:
+        phone = phone.replace(" ", "")
+        phone = phone.replace("-", "")
+        phone = phone.replace("+91", "")
+        
+    
     email = new_contact.get("Email")
+    if email :
+        email = email.strip().lower()
+    
+    name = new_contact.get("FullName")
+    if name:
+        name = " ".join(name.split()).title()
+    
+    
 
     existing_contact = None
 
@@ -84,10 +104,33 @@ def extract(data: ContactInput):
         }
 
     new_db_contact = Contact(
-        full_name=new_contact.get("FullName"),
-        phone=phone,
-        email=email
-    )
+         full_name=name,
+    first_name=new_contact.get("FirstName"),
+        last_name=new_contact.get("LastName"),
+        email=email,
+        
+    alternate_email=new_contact.get("AlternateEmail"),
+         phone=phone,
+         
+    alternate_phone=new_contact.get("AlternatePhone"),
+    
+    organization=new_contact.get("Company"),
+    
+    designation=new_contact.get("Designation"),
+    
+    experience_years=new_contact.get("ExperienceYears"),
+    
+    experience_months=new_contact.get("ExperienceMonths"),
+          industry=new_contact.get("Industry"),
+           city=new_contact.get("City"),
+           state=new_contact.get("State"),
+           country=new_contact.get("Country"),
+    nationality=new_contact.get("Nationality"),
+         linkedin=new_contact.get("LinkedIn"),
+          website=new_contact.get("Website"),
+          skills=", ".join(new_contact.get("Skills", [])),
+           notes=new_contact.get("Notes")
+)  
 
     db.add(new_db_contact)
     db.commit()
@@ -260,7 +303,7 @@ Contact 2:
         }
 
 
-folder = "input_files"
+"""folder = "input_files"
 
 for file in os.listdir(folder):
     file_path = os.path.join(folder, file)
@@ -277,4 +320,4 @@ for file in os.listdir(folder):
         text = read_docx(file_path)
 
         contact = process_text(text)
-        print(contact)
+        print(contact)"""
