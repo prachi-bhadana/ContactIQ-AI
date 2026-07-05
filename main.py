@@ -50,17 +50,9 @@ def search_contacts(
     ).all()
     
     return contacts
-    
-@app.post("/extract")
-def extract(data: ContactInput):
 
-    new_contact = process_text(data.text)
-    if new_contact.get("status")=="error":
-        return new_contact
-    
-    print(new_contact)
+def save_contact(new_contact):
     db = SessionLocal()
-
     phone = new_contact.get("PhoneNumber")
     if phone:
         phone = phone.replace(" ", "")
@@ -102,15 +94,15 @@ def extract(data: ContactInput):
         }
     print(new_contact)
     new_db_contact = Contact(
-         full_name=name,
+        full_name=name,
     first_name=new_contact.get("FirstName"),
         last_name=new_contact.get("LastName"),
         email=email,
         
     alternate_email=new_contact.get("AlternateEmail"),
-         phone=phone,
+        phone=phone,
         
-         
+        
     alternate_phone=new_contact.get("AlternatePhone"),
     
     organization=new_contact.get("Company"),
@@ -120,16 +112,16 @@ def extract(data: ContactInput):
     experience_years=new_contact.get("ExperienceYears"),
     
     experience_months=new_contact.get("ExperienceMonths"),
-          industry=new_contact.get("Industry"),
-           city=new_contact.get("City"),
-           state=new_contact.get("State"),
-           country=new_contact.get("Country"),
+        industry=new_contact.get("Industry"),
+        city=new_contact.get("City"),
+        state=new_contact.get("State"),
+        country=new_contact.get("Country"),
     nationality=new_contact.get("Nationality"),
-         linkedin=new_contact.get("LinkedIn"),
-          website=new_contact.get("Website"),
-          skills=", ".join(new_contact.get("Skills", [])),
-           notes=new_contact.get("Notes"),
-     confidence=new_contact.get("Confidence")
+        linkedin=new_contact.get("LinkedIn"),
+        website=new_contact.get("Website"),
+        skills=", ".join(new_contact.get("Skills", [])),
+        notes=new_contact.get("Notes"),
+    confidence=new_contact.get("Confidence")
 )  
 
     db.add(new_db_contact)
@@ -143,6 +135,19 @@ def extract(data: ContactInput):
         "contact": new_db_contact.full_name
     }
     
+
+    
+@app.post("/extract")
+def extract(data: ContactInput):
+
+    new_contact = process_text(data.text)
+    if new_contact.get("status")=="error":
+        return new_contact
+    
+    return save_contact(new_contact)
+    
+    
+    
     
 
 @app.post("/compare")
@@ -152,7 +157,55 @@ def compare(data: CompareInput):
         data.contact2
     )
 
+@app.post("/process-folder")
+def process_folder():
+    
+    
+    folder = "input_files"
+    
 
+    for file in os.listdir(folder):
+        
+        print(file)
+
+        file_path = os.path.join(folder, file)
+        
+        if not os.path.isfile(file_path):
+            continue
+
+        if file.endswith(".pdf"):
+            print("PDF Found")
+
+            text = read_pdf(file_path)
+            print("PDF Read Successfully")
+
+            
+            contact = process_text(text)
+
+            if contact.get("status") == "error":
+              continue
+
+            save_contact(contact)
+
+        elif file.endswith(".docx"):
+            print("DOCX Found")
+
+            text = read_docx(file_path)
+            print("DOCX Read Successfully")
+
+            contact = process_text(text)
+
+            if contact.get("status") == "error":
+                continue
+
+            save_contact(contact)
+
+    return {
+                "message": "Folder processed successfully"
+                }
+    
+    
+    
 def process_text(text):
 
     prompt = f"""
@@ -192,7 +245,7 @@ Return this exact JSON structure:
 "LinkedIn": "",
 "Website": "",
 "Skills": [],
-"Notes": ""
+"Notes": "",
 "Confidence" : 0
 }}
 
