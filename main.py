@@ -58,8 +58,6 @@ def extract(data: ContactInput):
     if new_contact.get("status")=="error":
         return new_contact
     
-    
-    
     print(new_contact)
     db = SessionLocal()
 
@@ -102,7 +100,7 @@ def extract(data: ContactInput):
             "message": "Duplicate contact found.",
             "existing_contact": existing_contact.full_name
         }
-
+    print(new_contact)
     new_db_contact = Contact(
          full_name=name,
     first_name=new_contact.get("FirstName"),
@@ -111,6 +109,7 @@ def extract(data: ContactInput):
         
     alternate_email=new_contact.get("AlternateEmail"),
          phone=phone,
+        
          
     alternate_phone=new_contact.get("AlternatePhone"),
     
@@ -129,17 +128,21 @@ def extract(data: ContactInput):
          linkedin=new_contact.get("LinkedIn"),
           website=new_contact.get("Website"),
           skills=", ".join(new_contact.get("Skills", [])),
-           notes=new_contact.get("Notes")
+           notes=new_contact.get("Notes"),
+     confidence=new_contact.get("Confidence")
 )  
 
     db.add(new_db_contact)
     db.commit()
     db.refresh(new_db_contact)
+    
+    
 
     return {
         "message": "Contact saved successfully.",
         "contact": new_db_contact.full_name
     }
+    
     
 
 @app.post("/compare")
@@ -190,7 +193,12 @@ Return this exact JSON structure:
 "Website": "",
 "Skills": [],
 "Notes": ""
+"Confidence" : 0
 }}
+
+Return ONLY valid JSON.
+
+Also return an overall confidence score between 0 and 100 indicating how confident you are in the extracted information.
 
 Resume Text:
 

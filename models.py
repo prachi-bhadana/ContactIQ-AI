@@ -31,3 +31,4 @@ class Contact(Base):
     website = Column(String)
     skills = Column(String)
     notes = Column(String)
+    confidence = Column(Integer)
