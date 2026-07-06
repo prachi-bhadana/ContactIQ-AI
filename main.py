@@ -40,23 +40,66 @@ def home():
     return {
         "message": "welcome to ContactIQ AI"
     }
+
+@pp.get("/status")
+def get_status():
+    return{
+        "status":"running",
+        "proccessed_files":len(processed_files),
+        "total_logs": len(processing_logs)
+        "database" : "connected"
+    }
+    
+    
+    
+    
 @app.get("/contacts")
 def get_contacts():
     db = SessionLocal()
     contacts =db.query(Contact).all()
     return contacts
 
-@app.get ("/contact/search")
+@app.get("/contact/{contact_id}")
+def get_contact(contact_id: int):
+
+    db = SessionLocal()
+
+    contact = db.query(Contact).filter(
+        Contact.id == contact_id
+    ).first()
+
+    if not contact:
+        return {
+            "message": "Contact not found."
+        }
+
+    return contact
+
+
+
+@app.get("/contact/search")
 def search_contacts(
-    name: str = Query(None)
+    name: str = Query(None),
+    email: str = Query(None),
+    phone: str = Query(None)
 ):
-    db= SessionLocal()
-    
-    contacts= db.query(Contact).filter(
-        Contact.full_name ==name 
-    ).all()
-    
-    return contacts
+    db = SessionLocal()
+
+    query = db.query(Contact)
+
+    if name:
+        query = query.filter(Contact.full_name.ilike(f"%{name}%"))
+
+    if email:
+        query = query.filter(Contact.email.ilike(f"%{email}%"))
+
+    if phone:
+        query = query.filter(Contact.phone.ilike(f"%{phone}%"))
+
+    return query.all()
+
+
+
 
 def save_contact(new_contact):
     db = SessionLocal()
