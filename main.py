@@ -1,6 +1,7 @@
 import os
 import json
 from file_reader import read_pdf, read_docx
+from ocr_reader import read_image
 
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -204,6 +205,26 @@ def process_single_file(file_path):
                 print(result["message"])
                 
                 return result
+            
+    elif file.lower().endwith((".jpg",".jpeg",".png",".bmp")):
+                print("Image Found")
+                
+                
+                text = read_image(file_path)
+                print("Image OCR Successfully")
+        
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message ": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+        
             
     return {
                 "message":"unsupported file type"
