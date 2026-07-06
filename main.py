@@ -2,7 +2,7 @@ import os
 import json
 from file_reader import read_pdf, read_docx
 
-from google import genai
+from openai import OpenAI
 from dotenv import load_dotenv
 from fastapi import FastAPI , Query
 from pydantic import BaseModel
@@ -10,9 +10,12 @@ from database import engine, Base, SessionLocal
 from models import Contact
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
+api_key = os.getenv("OPENROUTER_API_KEY")
 
-client = genai.Client(api_key=api_key)
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://openrouter.ai/api/v1"
+)
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -222,29 +225,30 @@ def process_folder():
                 if result["message"] == "Contact saved successfully.":
                     processed += 1
                     contacts_saved += 1
-
-                elif result["message"] == "Duplicate contact found.":
-                    duplicates += 1
-
-                elif result["message"] == "Contact skipped because phone and email are missing.":
-                    failed += 1
-                
-                '''if result["message"] == "Duplicate contact found.":
-                    duplicate +=1
-                elif result ["message"] == "contact skipped because phone and email are missing .":
-                    failed+=1
-                else:
-                    processed +=1 
-                    contacts_saved +=1'''
-                
-                processed_files.add(file)
-                
-                
-                processing_logs.append({
+                    
+                    processing_logs.append({
                     "file" : file ,
                     "status" : "success"
                 })
 
+                elif result["message"] == "Duplicate contact found.":
+                    duplicates += 1
+                    
+                    processing_logs.append({
+                    "file" : file ,
+                    "status" : "Duplicate"
+                })
+
+                elif result["message"] == "Contact skipped because phone and email are missing.":
+                    failed += 1
+                    processing_logs.append({
+                    "file" : file ,
+                    "status" : "failed"
+                })
+                
+                processed_files.add(file)
+                
+                
             elif file.endswith(".docx"):
                 print("DOCX Found")
 
@@ -262,29 +266,30 @@ def process_folder():
                 if result["message"] == "Contact saved successfully.":
                     processed += 1
                     contacts_saved += 1
-
-                elif result["message"] == "Duplicate contact found.":
-                    duplicates += 1
-
-                elif result["message"] == "Contact skipped because phone and email are missing.":
-                    failed += 1
-                
-                '''if result["message"] == "Duplicate contact found.":
-                    duplicate +=1
                     
-                elif result ["message"] == "contact skipped because phone and email are missing .":
-                    failed+=1
-                    
-                else:
-                    processed +=1 
-                    contacts_saved +=1'''
-                
-                processed_files.add(file)
-                
-                processing_logs.append({
+                    processing_logs.append({
                     "file" : file ,
                     "status" : "success"
                 })
+
+                elif result["message"] == "Duplicate contact found.":
+                    duplicates += 1
+                    processing_logs.append({
+                    "file" : file ,
+                    "status" : "Duplicate"
+                })
+
+                elif result["message"] == "Contact skipped because phone and email are missing.":
+                    failed += 1
+                    
+                    processing_logs.append({
+                    "file" : file ,
+                    "status" : "failed"
+                })
+                
+                
+                
+                
             
         except Exception as e :
             print("ERROR:",e)
@@ -294,15 +299,25 @@ def process_folder():
                 "status": "failed",
                 "error": str(e)
         })
+            
+    success_rate =0
+    
+    if total_files>0:
+        success_rate = round((processed / total_files)    * 100 ,2 )
 
     return {
                 "message": "Folder processed successfully",
+                "summary":{
                 "total_files" : total_files ,
                 "processed" : processed,
                 "contacts_saved" : contacts_saved ,
                 "duplicates" : duplicates,
-                "failed": failed
-                }
+                "failed": failed,
+                "success_rate": f"{success_rate}%"
+                },
+                
+                "processing_logs" :processing_logs
+    }
     
 @app.get("/logs")
 def get_logs():
@@ -361,9 +376,14 @@ Resume Text:
 """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+        response = client.chat.completions.create(
+            model="poolside/laguna-xs-2.1:free",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
         )
 
     except Exception as e:
@@ -374,7 +394,7 @@ Resume Text:
 
     try:
         cleaned_response = (
-            response.text
+            response.choices[0].message.content
             .replace("```json", "")
             .replace("```", "")
             .strip()
@@ -437,9 +457,14 @@ Contact 2:
 """
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
+        response = client.chat.completions.create(
+            model="poolside/laguna-xs-2.1:free",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
         )
 
     except Exception as e:
@@ -450,7 +475,7 @@ Contact 2:
 
     try:
         cleaned_response = (
-            response.text
+            response.choices[0].message.content
             .replace("```json", "")
             .replace("```", "")
             .strip()
