@@ -166,11 +166,16 @@ def process_folder():
     print(processed_files)
     print(processing_logs)
     
-    
+    total_files = 0
+    processed =0
+    failed = 0
+    duplicates = 0
+    contacts_saved = 0
     folder = "input_files"
     
 
     for file in os.listdir(folder):
+        total_files +=1
         if file in processed_files:
             print(f"skipping{file}")
             
@@ -195,14 +200,43 @@ def process_folder():
 
                 text = read_pdf(file_path)
                 print("PDF Read Successfully")
-
                 
                 contact = process_text(text)
+                print(contact)
 
+                
                 if contact.get("status") == "error":
-                 continue
+                    failed +=1
+                    
+                    processing_logs.append({
+                        "file" : file,
+                        "status" : "failed",
+                        "error": contact.get ("message")
+                    })
+                    
+                    continue    
+                result = save_contact(contact)
+                print(result["message"])
+                
 
-                save_contact(contact)
+                if result["message"] == "Contact saved successfully.":
+                    processed += 1
+                    contacts_saved += 1
+
+                elif result["message"] == "Duplicate contact found.":
+                    duplicates += 1
+
+                elif result["message"] == "Contact skipped because phone and email are missing.":
+                    failed += 1
+                
+                '''if result["message"] == "Duplicate contact found.":
+                    duplicate +=1
+                elif result ["message"] == "contact skipped because phone and email are missing .":
+                    failed+=1
+                else:
+                    processed +=1 
+                    contacts_saved +=1'''
+                
                 processed_files.add(file)
                 
                 
@@ -222,7 +256,29 @@ def process_folder():
                 if contact.get("status") == "error":
                     continue
 
-                save_contact(contact)
+                result = save_contact(contact)
+                print(result["message"])
+                
+                if result["message"] == "Contact saved successfully.":
+                    processed += 1
+                    contacts_saved += 1
+
+                elif result["message"] == "Duplicate contact found.":
+                    duplicates += 1
+
+                elif result["message"] == "Contact skipped because phone and email are missing.":
+                    failed += 1
+                
+                '''if result["message"] == "Duplicate contact found.":
+                    duplicate +=1
+                    
+                elif result ["message"] == "contact skipped because phone and email are missing .":
+                    failed+=1
+                    
+                else:
+                    processed +=1 
+                    contacts_saved +=1'''
+                
                 processed_files.add(file)
                 
                 processing_logs.append({
@@ -231,6 +287,8 @@ def process_folder():
                 })
             
         except Exception as e :
+            print("ERROR:",e)
+            failed+=1
             processing_logs.append({
                 "file":file , 
                 "status": "failed",
@@ -238,7 +296,12 @@ def process_folder():
         })
 
     return {
-                "message": "Folder processed successfully"
+                "message": "Folder processed successfully",
+                "total_files" : total_files ,
+                "processed" : processed,
+                "contacts_saved" : contacts_saved ,
+                "duplicates" : duplicates,
+                "failed": failed
                 }
     
 @app.get("/logs")
