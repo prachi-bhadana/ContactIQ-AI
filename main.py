@@ -1,6 +1,7 @@
 import os
 import json
-from file_reader import read_pdf, read_docx
+import csv
+from file_reader import read_pdf, read_docx, read_txt, read_csv,read_excel , read_doc
 from ocr_reader import read_image
 
 from openai import OpenAI
@@ -100,36 +101,61 @@ def save_contact(new_contact):
         }
     print(new_contact)
     new_db_contact = Contact(
-        full_name=name,
-    first_name=new_contact.get("FirstName"),
-        last_name=new_contact.get("LastName"),
-        email=email,
-        
-    alternate_email=new_contact.get("AlternateEmail"),
-        phone=phone,
-        
-        
-    alternate_phone=new_contact.get("AlternatePhone"),
-    
-    organization=new_contact.get("Company"),
-    
-    designation=new_contact.get("Designation"),
-    
-    experience_years=new_contact.get("ExperienceYears"),
-    
-    experience_months=new_contact.get("ExperienceMonths"),
-        industry=new_contact.get("Industry"),
-        city=new_contact.get("City"),
-        state=new_contact.get("State"),
-        country=new_contact.get("Country"),
-    nationality=new_contact.get("Nationality"),
-        linkedin=new_contact.get("LinkedIn"),
-        website=new_contact.get("Website"),
-        skills=", ".join(new_contact.get("Skills", [])),
-        notes=new_contact.get("Notes"),
-    confidence=new_contact.get("Confidence")
-)  
+    salutation=new_contact.get("Salutation"),
 
+    full_name=name,
+    first_name=new_contact.get("FirstName"),
+    last_name=new_contact.get("LastName"),
+
+    email=email,
+    alternate_email=new_contact.get("AlternateEmail"),
+
+    phone=phone,
+    alternate_phone=new_contact.get("AlternatePhone"),
+
+    organization=new_contact.get("Company"),
+    designation=new_contact.get("Designation"),
+    occupation=new_contact.get("Occupation"),
+
+    experience_years=new_contact.get("ExperienceYears"),
+    experience_months=new_contact.get("ExperienceMonths"),
+    industry=new_contact.get("Industry"),
+
+    current_address=new_contact.get("CurrentAddress"),
+    permanent_address=new_contact.get("PermanentAddress"),
+
+    city=new_contact.get("City"),
+    state=new_contact.get("State"),
+    country=new_contact.get("Country"),
+
+    gender=new_contact.get("Gender"),
+    marital_status=new_contact.get("MaritalStatus"),
+    date_of_birth=new_contact.get("DateOfBirth"),
+    nationality=new_contact.get("Nationality"),
+    language=new_contact.get("Language"),
+    religion=new_contact.get("Religion"),
+    education=new_contact.get("Education"),
+
+    pan=new_contact.get("PAN"),
+    aadhaar=new_contact.get("Aadhaar"),
+
+    linkedin=new_contact.get("LinkedIn"),
+    facebook=new_contact.get("Facebook"),
+    instagram=new_contact.get("Instagram"),
+    twitter=new_contact.get("Twitter"),
+    website=new_contact.get("Website"),
+    youtube=new_contact.get("YouTube"),
+
+    primary_expertise=new_contact.get("PrimaryExpertise"),
+    alternate_expertise=new_contact.get("AlternateExpertise"),
+
+    skills=", ".join(new_contact.get("Skills", [])),
+    notes=new_contact.get("Notes"),
+
+    confidence=new_contact.get("Confidence"),
+    processing_status=new_contact.get("ProcessingStatus")
+)
+    
     db.add(new_db_contact)
     db.commit()
     db.refresh(new_db_contact)
@@ -167,7 +193,7 @@ def process_single_file(file_path):
     
     file = os.path.basename(file_path)
     
-    if file.endswith(".pdf"):
+    if file.lower().endswith((".pdf")):
                 print("PDF Found")
 
                 text = read_pdf(file_path)
@@ -188,7 +214,7 @@ def process_single_file(file_path):
                 return result
                 
               
-    elif file.endswith(".docx"):
+    elif file.lower().endswith((".docx")):
                 print("DOCX Found")
 
                 text = read_docx(file_path)
@@ -198,7 +224,7 @@ def process_single_file(file_path):
 
                 if contact.get("status") == "error":
                     return {
-                        "message ": "Processing Failed"
+                        "message": "Processing Failed"
                     }
 
                 result = save_contact(contact)
@@ -206,24 +232,104 @@ def process_single_file(file_path):
                 
                 return result
             
-    elif file.lower().endwith((".jpg",".jpeg",".png",".bmp")):
+    elif file.lower().endswith((".jpg",".jpeg",".png",".bmp")):
                 print("Image Found")
                 
                 
                 text = read_image(file_path)
-                print("Image OCR Successfully")
+                print(" IMAGE read Successfully")
         
                 contact = process_text(text)
 
                 if contact.get("status") == "error":
                     return {
-                        "message ": "Processing Failed"
+                        "message": "Processing Failed"
                     }
 
                 result = save_contact(contact)
                 print(result["message"])
                 
                 return result
+            
+    elif file.lower().endswith((".txt")):
+                print("TXT found")
+                
+                
+                text = read_txt(file_path)
+                print("TEXT read Successfully")
+        
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+            
+    elif file.lower().endswith((".csv")):
+                print("CSV found")
+                
+                
+                text = read_csv(file_path)
+                print("CSV read Successfully")
+        
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+            
+            
+    elif file.lower().endswith((".xlsx",".xls")):
+                print("EXCEL found")
+                
+                
+                text = read_csv(file_path)
+                print("Excel read Successfully")
+        
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+            
+            
+    elif file.lower().endswith((".doc")):
+                print("DOC found")
+                
+                
+                text = read_csv(file_path)
+                print("DOC read Successfully")
+        
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+            
+    
         
             
     return {
@@ -356,29 +462,57 @@ Extract FirstName and LastName separately whenever possible.
 
 Return this exact JSON structure:
 
-{{
+{
+"Salutation": "",
 "FullName": "",
 "FirstName": "",
 "LastName": "",
+
 "Email": "",
 "AlternateEmail": "",
 "PhoneNumber": "",
 "AlternatePhone": "",
+
+"CurrentAddress": "",
+"PermanentAddress": "",
+
+"Gender": "",
+"MaritalStatus": "",
+"DateOfBirth": "",
+"Language": "",
+"Religion": "",
+"Education": "",
+
+"PAN": "",
+"Aadhaar": "",
+
 "Company": "",
 "Designation": "",
+"Occupation": "",
 "ExperienceYears": "",
 "ExperienceMonths": "",
 "Industry": "",
+"PrimaryExpertise": "",
+"AlternateExpertise": "",
+
 "City": "",
 "State": "",
 "Country": "",
 "Nationality": "",
+
 "LinkedIn": "",
+"Facebook": "",
+"Instagram": "",
+"Twitter": "",
+"YouTube": "",
 "Website": "",
+
 "Skills": [],
 "Notes": "",
-"Confidence" : 0
-}}
+
+"Confidence": 0,
+"ProcessingStatus": ""
+}
 
 Return ONLY valid JSON.
 
