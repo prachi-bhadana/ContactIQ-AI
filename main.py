@@ -161,6 +161,56 @@ def compare(data: CompareInput):
         data.contact1,
         data.contact2
     )
+
+def process_single_file(file_path):
+    
+    file = os.path.basename(file_path)
+    
+    if file.endswith(".pdf"):
+                print("PDF Found")
+
+                text = read_pdf(file_path)
+                print("PDF Read Successfully")
+                
+                contact = process_text(text)
+                print(contact)
+
+                
+                if contact.get("status") == "error":
+                    return {
+                        "message ": "Processing Failed"
+                    }
+                    
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+                
+              
+    elif file.endswith(".docx"):
+                print("DOCX Found")
+
+                text = read_docx(file_path)
+                print("DOCX Read Successfully")
+
+                contact = process_text(text)
+
+                if contact.get("status") == "error":
+                    return {
+                        "message ": "Processing Failed"
+                    }
+
+                result = save_contact(contact)
+                print(result["message"])
+                
+                return result
+            
+    return {
+                "message":"unsupported file type"
+            }
+            
+                
+                
     
 
 @app.post("/process-folder")
@@ -192,104 +242,47 @@ def process_folder():
             file_path = os.path.join(folder,file)
         
             print(file)
-
-            file_path = os.path.join(folder, file)
             
             if not os.path.isfile(file_path):
                 continue
 
-            if file.endswith(".pdf"):
-                print("PDF Found")
+            result = process_single_file(file_path)
+            if result["message"] == "Contact saved successfully.":
+                    processed += 1
+                    contacts_saved += 1
+                    processed_files.add(file)
 
-                text = read_pdf(file_path)
-                print("PDF Read Successfully")
-                
-                contact = process_text(text)
-                print(contact)
-
-                
-                if contact.get("status") == "error":
-                    failed +=1
-                    
                     processing_logs.append({
-                        "file" : file,
-                        "status" : "failed",
-                        "error": contact.get ("message")
+                        "file": file,
+                        "status": "success"
                     })
-                    
-                    continue    
-                result = save_contact(contact)
-                print(result["message"])
-                
 
-                if result["message"] == "Contact saved successfully.":
-                    processed += 1
-                    contacts_saved += 1
-                    
-                    processing_logs.append({
-                    "file" : file ,
-                    "status" : "success"
-                })
-
-                elif result["message"] == "Duplicate contact found.":
+            elif result["message"] == "Duplicate contact found.":
                     duplicates += 1
-                    
-                    processing_logs.append({
-                    "file" : file ,
-                    "status" : "Duplicate"
-                })
+                    processed_files.add(file)
 
-                elif result["message"] == "Contact skipped because phone and email are missing.":
+                    processing_logs.append({
+                        "file": file,
+                        "status": "duplicate"
+                    })
+
+            elif result["message"] == "Contact skipped because phone and email are missing.":
                     failed += 1
+
                     processing_logs.append({
-                    "file" : file ,
-                    "status" : "failed"
-                })
-                
-                processed_files.add(file)
-                
-                
-            elif file.endswith(".docx"):
-                print("DOCX Found")
-
-                text = read_docx(file_path)
-                print("DOCX Read Successfully")
-
-                contact = process_text(text)
-
-                if contact.get("status") == "error":
-                    continue
-
-                result = save_contact(contact)
-                print(result["message"])
-                
-                if result["message"] == "Contact saved successfully.":
-                    processed += 1
-                    contacts_saved += 1
+                        "file": file,
+                        "status": "failed"
+                    }) 
                     
-                    processing_logs.append({
-                    "file" : file ,
-                    "status" : "success"
-                })
-
-                elif result["message"] == "Duplicate contact found.":
-                    duplicates += 1
-                    processing_logs.append({
-                    "file" : file ,
-                    "status" : "Duplicate"
-                })
-
-                elif result["message"] == "Contact skipped because phone and email are missing.":
+            elif result["message"] == "processing failed.":
                     failed += 1
-                    
+
                     processing_logs.append({
-                    "file" : file ,
-                    "status" : "failed"
-                })
-                
-                
-                
-                
+                        "file": file,
+                        "status": "failed"
+                    })     
+                                
+                                
             
         except Exception as e :
             print("ERROR:",e)
