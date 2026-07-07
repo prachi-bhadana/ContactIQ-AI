@@ -132,133 +132,72 @@
             </section>
 
             <section class="kpi-grid reveal" id="kpiGrid">
-                <div class="kpi-card" data-target="1284" data-suffix="">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-file-lines"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-file-lines"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="totalFiles">0</span></h2>
                         <p>Total Files Processed</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="3126" data-suffix="">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-address-book"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-address-book"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="contacts">0</span></h2>
                         <p>Contacts Extracted</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="842" data-suffix="">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-user-plus"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-user-plus"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="newContacts">0</span></h2>
                         <p>New Contacts</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="57" data-suffix="">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-copy"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-copy"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="duplicates">0</span></h2>
                         <p>Duplicate Contacts</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="6" data-suffix="">
-                    <div class="kpi-ring warn" style="--p:0"><i class="fa-solid fa-circle-xmark"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring warn"><i class="fa-solid fa-circle-xmark"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="failed">0</span></h2>
                         <p>Failed Files</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="98" data-suffix="%">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-bullseye"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-bullseye"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="accuracy">0%</span></h2>
                         <p>Processing Accuracy</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="95" data-suffix="%">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-eye"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-eye"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="ocrConfidence">0%</span></h2>
                         <p>Avg. OCR Confidence</p>
                     </div>
                 </div>
-                <div class="kpi-card" data-target="97" data-suffix="%">
-                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-brain"></i></div>
+
+                <div class="kpi-card">
+                    <div class="kpi-ring"><i class="fa-solid fa-brain"></i></div>
                     <div class="kpi-text">
-                        <h2><span class="count">0</span></h2>
+                        <h2><span class="count" id="aiConfidence">0%</span></h2>
                         <p>Avg. AI Confidence</p>
                     </div>
                 </div>
+
             </section>
-
-            <section class="panel-grid reveal">
-                <div class="panel queue-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h2><i class="fa-solid fa-list-check"></i> Processing Queue</h2>
-                            <p>Live document pipeline status</p>
-                        </div>
-                        <button class="btn-small" id="refreshQueue"><i class="fa-solid fa-rotate"></i> Refresh</button>
-                    </div>
-                    <div class="table-wrap">
-                        <table class="queue-table">
-                            <thead>
-                                <tr>
-                                    <th>File Name</th>
-                                    <th>Status</th>
-                                    <th>Time</th>
-                                    <th>Contacts</th>
-                                    <th>OCR Accuracy</th>
-                                    <th>Confidence</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="queueBody">
-                                <!-- populated by script.js -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="panel activity-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h2><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h2>
-                            <p>Latest pipeline events</p>
-                        </div>
-                    </div>
-                    <div class="timeline" id="timeline">
-                        <!-- populated by script.js -->
-                    </div>
-                </div>
-            </section>
-
-            <section class="analytics-section reveal">
-                <div class="panel-head">
-                    <div>
-                        <h2><i class="fa-solid fa-chart-simple"></i> Analytics Overview</h2>
-                        <p>Processing trends and model performance</p>
-                    </div>
-                </div>
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>Processing Trend</h3>
-                        <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Duplicate Detection</h3>
-                        <div class="chart-wrap"><canvas id="dupChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>OCR Performance</h3>
-                        <div class="chart-wrap"><canvas id="ocrChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>AI Confidence Distribution</h3>
-                        <div class="chart-wrap"><canvas id="confChart"></canvas></div>
-                    </div>
-                </div>
-            </section>
-
             <section class="health-section reveal">
                 <div class="panel-head">
                     <div>
@@ -283,6 +222,6 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="/static/script.js"></script>
+
 </body>
 </html>
