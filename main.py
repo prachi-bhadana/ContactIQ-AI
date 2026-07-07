@@ -508,6 +508,57 @@ def process_folder():
                 "processing_logs" :processing_logs
     }
     
+    
+@app.get("/dashboard-data")
+def dashboard_data():
+    db = SessionLocal()
+
+    total_contacts = db.query(Contact).count()
+
+    # You can replace these with real values later
+    total_files = total_contacts
+    new_contacts = total_contacts
+    duplicate_contacts = 0
+    failed_files = 0
+    processing_accuracy = 98
+    ocr_confidence = 95
+    ai_confidence = 97
+
+    db.close()
+
+    return {
+        "total_files": total_files,
+        "contacts": total_contacts,
+        "new_contacts": new_contacts,
+        "duplicates": duplicate_contacts,
+        "failed": failed_files,
+        "accuracy": processing_accuracy,
+        "ocr_confidence": ocr_confidence,
+        "ai_confidence": ai_confidence
+    }
+    
+    
+@app.get("/processing-queue")
+def processing_queue():
+    return [
+        {
+            "filename": "resume.pdf",
+            "status": "Completed",
+            "time": "2.3 s",
+            "contacts": 5,
+            "accuracy": "98%",
+            "confidence": "97%"
+        },
+        {
+            "filename": "business_card.jpg",
+            "status": "Processing",
+            "time": "1.2 s",
+            "contacts": 0,
+            "accuracy": "--",
+            "confidence": "--"
+        }
+    ]
+    
 @app.get("/logs")
 def get_logs():
     return processing_logs
@@ -629,25 +680,7 @@ Resume Text:
         
         
         
-'''app.get("/dashboard-data")
-def dashboard_data():
-    db = SessionLocal()
 
-    total_contacts = db.query(Contact).count()
-
-    total_files = len(processed_files)
-
-    
-    db.close()
-
-    return {
-        "total_files": total_files,
-        "contacts": total_contacts,
-        "duplicates": duplicate_contacts,
-        "failed": failed_files,
-        "accuracy": accuracy
-    }'''
-    
     
 
 def compare_contacts(contact1, contact2):

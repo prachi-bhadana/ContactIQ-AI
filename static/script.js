@@ -439,3 +439,37 @@ async function runProcessing(){
         loadQueue(true);
     }
 }
+
+async function loadQueue() {
+
+    const response = await fetch("/processing-queue");
+    const data = await response.json();
+
+    const tbody = document.getElementById("queueBody");
+    tbody.innerHTML = "";
+
+    data.forEach(item => {
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${item.filename}</td>
+            <td>${item.status}</td>
+            <td>${item.time}</td>
+            <td>${item.contacts}</td>
+            <td>${item.accuracy}</td>
+            <td>${item.confidence}</td>
+            <td>
+                <button class="btn-small">View</button>
+            </td>
+        </tr>`;
+    });
+}
+document.addEventListener("DOMContentLoaded", () => {
+
+    loadDashboard();
+    loadQueue();
+
+    // initialize charts
+    // initialize animations
+    // initialize theme
+});
