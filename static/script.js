@@ -464,12 +464,17 @@ async function loadQueue() {
         </tr>`;
     });
 }
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
 
-    loadDashboard();
-    loadQueue();
+    try {
 
-    // initialize charts
-    // initialize animations
-    // initialize theme
+        await loadDashboard();
+        await loadQueue();
+
+    } catch (error) {
+
+        console.error("Dashboard loading failed:", error);
+
+    }
+
 });
