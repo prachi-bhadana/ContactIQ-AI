@@ -66,7 +66,7 @@ def get_status():
     "processing_accuracy": 100
 }
     
-    
+
     
     
 @app.get("/contacts")
@@ -168,7 +168,7 @@ def save_contact(new_contact):
         }
     print(new_contact)
     new_db_contact = Contact(
-    salutation=new_contact.get("Salutation"),
+
 
     full_name=name,
     first_name=new_contact.get("FirstName"),
@@ -529,8 +529,8 @@ Extract FirstName and LastName separately whenever possible.
 
 Return this exact JSON structure:
 
-{
-"Salutation": "",
+{{
+
 "FullName": "",
 "FirstName": "",
 "LastName": "",
@@ -579,7 +579,7 @@ Return this exact JSON structure:
 
 "Confidence": 0,
 "ProcessingStatus": ""
-}
+}}
 
 Return ONLY valid JSON.
 
@@ -624,7 +624,29 @@ Resume Text:
             "message": "Invalid JSON returned by Gemini.",
             "raw_response": response.text
         }
+        
+        
+        
+'''app.get("/dashboard-data")
+def dashboard_data():
+    db = SessionLocal()
 
+    total_contacts = db.query(Contact).count()
+
+    total_files = len(processed_files)
+
+    
+    db.close()
+
+    return {
+        "total_files": total_files,
+        "contacts": total_contacts,
+        "duplicates": duplicate_contacts,
+        "failed": failed_files,
+        "accuracy": accuracy
+    }'''
+    
+    
 
 def compare_contacts(contact1, contact2):
 

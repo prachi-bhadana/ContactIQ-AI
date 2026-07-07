@@ -32,7 +32,7 @@ class Contact(Base):
     skills = Column(String)
     notes = Column(String)
     confidence = Column(Integer)
-    salutation = Column(String)
+    
 
 current_address = Column(String)
 permanent_address = Column(String)
