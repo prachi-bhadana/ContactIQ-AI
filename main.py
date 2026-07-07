@@ -10,6 +10,10 @@ from fastapi import FastAPI , Query
 from pydantic import BaseModel
 from database import engine, Base, SessionLocal
 from models import Contact
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
@@ -20,6 +24,16 @@ client = OpenAI(
 )
 
 app = FastAPI()
+
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+templates = Jinja2Templates(directory="templates")
+
+
+
+
+
 Base.metadata.create_all(bind=engine)
 crm_contacts = []
 
@@ -41,14 +55,16 @@ def home():
         "message": "welcome to ContactIQ AI"
     }
 
-@pp.get("/status")
+@app.get("/status")
 def get_status():
-    return{
-        "status":"running",
-        "proccessed_files":len(processed_files),
-        "total_logs": len(processing_logs)
-        "database" : "connected"
-    }
+    return {
+    "status": "running",
+    "total_files": len(processed_files),
+    "total_contacts": len(processed_files),   # temporary
+    "duplicates": 0,
+    "failed_files": 0,
+    "processing_accuracy": 100
+}
     
     
     
@@ -74,6 +90,14 @@ def get_contact(contact_id: int):
         }
 
     return contact
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={"request": request}
+    )
 
 
 

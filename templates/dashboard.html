@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContactIQ AI — Intelligence Dashboard</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+<link rel="stylesheet" href="/static/style.css">
+<script defer src="/static/script.js"></script>
+</head>
+<body>
+
+<div class="bg-mesh" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+    <span class="grain"></span>
+</div>
+
+<div class="loader-overlay" id="loaderOverlay">
+    <div class="loader-mark">
+        <div class="loader-ring"></div>
+        <i class="fa-solid fa-circle-nodes"></i>
+    </div>
+    <p>Booting ContactIQ intelligence layer…</p>
+</div>
+
+<div class="app">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-top">
+            <div class="logo">
+                <span class="logo-mark"><i class="fa-solid fa-circle-nodes"></i></span>
+                <span class="logo-text">ContactIQ</span>
+            </div>
+            <button class="collapse-btn" id="collapseBtn" aria-label="Collapse sidebar">
+                <i class="fa-solid fa-chevrons-left"></i>
+            </button>
+        </div>
+
+        <nav class="menu">
+            <a href="#" class="menu-item active" data-tooltip="Dashboard">
+                <i class="fa-solid fa-grip"></i><span>Dashboard</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Contacts">
+                <i class="fa-solid fa-address-book"></i><span>Contacts</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Processing Queue">
+                <i class="fa-solid fa-layer-group"></i><span>Processing Queue</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-pie"></i><span>Analytics</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Duplicate Review">
+                <i class="fa-solid fa-clone"></i><span>Duplicate Review</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="OCR Logs">
+                <i class="fa-solid fa-file-waveform"></i><span>OCR Logs</span>
+            </a>
+            <a href="#" class="menu-item" data-tooltip="Settings">
+                <i class="fa-solid fa-sliders"></i><span>Settings</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+            <div class="plan-card" data-tooltip="Pro Plan">
+                <i class="fa-solid fa-bolt"></i>
+                <div class="plan-text">
+                    <strong>Pro Pipeline</strong>
+                    <span>Unlimited processing</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main">
+
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="icon-btn mobile-toggle" id="mobileToggle" aria-label="Open menu">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="searchInput" placeholder="Search contacts, files, logs…">
+                    <kbd>⌘K</kbd>
+                </div>
+            </div>
+
+            <div class="topbar-right">
+                <div class="greeting-block">
+                    <span class="greeting" id="greeting">Good day</span>
+                    <span class="date" id="dateDisplay"></span>
+                </div>
+                <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+                    <i class="fa-solid fa-sun"></i>
+                </button>
+                <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+                    <i class="fa-solid fa-bell"></i>
+                    <span class="notif-dot"></span>
+                </button>
+                <div class="profile">
+                    <div class="avatar">AR</div>
+                    <div class="profile-info">
+                        <strong>Admin</strong>
+                        <span><i class="fa-solid fa-circle"></i> Online</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="content" id="mainContent">
+
+            <section class="hero reveal">
+                <span class="eyebrow"><i class="fa-solid fa-sparkles"></i> OCR + LLM extraction pipeline</span>
+                <h1>AI-Powered CRM Intelligence</h1>
+                <p>Automatically extract, validate, enrich and manage contacts using OCR and large language models — no manual entry required.</p>
+                <div class="hero-actions">
+                    <button class="btn btn-primary" id="processBtn">
+                        <i class="fa-solid fa-play"></i> Run Processing
+                    </button>
+                    <button class="btn btn-ghost" id="docsBtn">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> View API Docs
+                    </button>
+                </div>
+            </section>
+
+            <section class="kpi-grid reveal" id="kpiGrid">
+                <div class="kpi-card" data-target="1284" data-suffix="">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-file-lines"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Total Files Processed</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="3126" data-suffix="">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-address-book"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Contacts Extracted</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="842" data-suffix="">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-user-plus"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>New Contacts</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="57" data-suffix="">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-copy"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Duplicate Contacts</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="6" data-suffix="">
+                    <div class="kpi-ring warn" style="--p:0"><i class="fa-solid fa-circle-xmark"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Failed Files</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="98" data-suffix="%">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-bullseye"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Processing Accuracy</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="95" data-suffix="%">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-eye"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Avg. OCR Confidence</p>
+                    </div>
+                </div>
+                <div class="kpi-card" data-target="97" data-suffix="%">
+                    <div class="kpi-ring" style="--p:0"><i class="fa-solid fa-brain"></i></div>
+                    <div class="kpi-text">
+                        <h2><span class="count">0</span></h2>
+                        <p>Avg. AI Confidence</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel-grid reveal">
+                <div class="panel queue-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2><i class="fa-solid fa-list-check"></i> Processing Queue</h2>
+                            <p>Live document pipeline status</p>
+                        </div>
+                        <button class="btn-small" id="refreshQueue"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="queue-table">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Contacts</th>
+                                    <th>OCR Accuracy</th>
+                                    <th>Confidence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queueBody">
+                                <!-- populated by script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="panel activity-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h2><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h2>
+                            <p>Latest pipeline events</p>
+                        </div>
+                    </div>
+                    <div class="timeline" id="timeline">
+                        <!-- populated by script.js -->
+                    </div>
+                </div>
+            </section>
+
+            <section class="analytics-section reveal">
+                <div class="panel-head">
+                    <div>
+                        <h2><i class="fa-solid fa-chart-simple"></i> Analytics Overview</h2>
+                        <p>Processing trends and model performance</p>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Processing Trend</h3>
+                        <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Duplicate Detection</h3>
+                        <div class="chart-wrap"><canvas id="dupChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>OCR Performance</h3>
+                        <div class="chart-wrap"><canvas id="ocrChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>AI Confidence Distribution</h3>
+                        <div class="chart-wrap"><canvas id="confChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="health-section reveal">
+                <div class="panel-head">
+                    <div>
+                        <h2><i class="fa-solid fa-heart-pulse"></i> AI Health Panel</h2>
+                        <p>Live system diagnostics</p>
+                    </div>
+                </div>
+                <div class="health-grid" id="healthGrid">
+                    <!-- populated by script.js -->
+                </div>
+            </section>
+
+            <footer class="page-footer">
+                <p>ContactIQ AI — extraction pipeline console</p>
+                <p id="lastSync">Last synced moments ago</p>
+            </footer>
+
+        </main>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
