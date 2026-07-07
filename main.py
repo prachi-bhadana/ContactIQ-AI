@@ -18,6 +18,8 @@ from fastapi import Request
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
+Base.metadata.create_all(bind=engine)
+
 client = OpenAI(
     api_key=api_key,
     base_url="https://openrouter.ai/api/v1"

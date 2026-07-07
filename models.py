@@ -34,27 +34,27 @@ class Contact(Base):
     confidence = Column(Integer)
     
 
-current_address = Column(String)
-permanent_address = Column(String)
+    current_address = Column(String)
+    permanent_address = Column(String)
 
-gender = Column(String)
-marital_status = Column(String)
-date_of_birth = Column(String)
-language = Column(String)
-religion = Column(String)
-education = Column(String)
+    gender = Column(String)
+    marital_status = Column(String)
+    date_of_birth = Column(String)
+    language = Column(String)
+    religion = Column(String)
+    education = Column(String)
 
-pan = Column(String)
-aadhaar = Column(String)
+    pan = Column(String)
+    aadhaar = Column(String)
 
-occupation = Column(String)
+    occupation = Column(String)
 
-primary_expertise = Column(String)
-alternate_expertise = Column(String)
+    primary_expertise = Column(String)
+    alternate_expertise = Column(String)
 
-facebook = Column(String)
-instagram = Column(String)
-twitter = Column(String)
-youtube = Column(String)
+    facebook = Column(String)
+    instagram = Column(String)
+    twitter = Column(String)
+    youtube = Column(String)
 
-processing_status = Column(String)
+    processing_status = Column(String)
