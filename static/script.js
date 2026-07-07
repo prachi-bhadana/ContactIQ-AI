@@ -464,6 +464,31 @@ async function loadQueue() {
         </tr>`;
     });
 }
+
+
+async function loadDashboard() {
+    try {
+        const response = await fetch("/dashboard-data");
+        const data = await response.json();
+
+        document.getElementById("totalFiles").textContent = data.total_files;
+        document.getElementById("contacts").textContent = data.contacts;
+        document.getElementById("newContacts").textContent = data.new_contacts;
+        document.getElementById("duplicates").textContent = data.duplicates;
+        document.getElementById("failed").textContent = data.failed;
+        document.getElementById("accuracy").textContent = data.accuracy + "%";
+        document.getElementById("ocrConfidence").textContent = data.ocr_confidence + "%";
+        document.getElementById("aiConfidence").textContent = data.ai_confidence + "%";
+
+        document.getElementById("lastSync").textContent =
+            "Last synced: " + new Date().toLocaleTimeString();
+
+    } catch (error) {
+        console.error("Dashboard loading failed:", error);
+    }
+}
+
+
 document.addEventListener("DOMContentLoaded", async () => {
 
     try {
