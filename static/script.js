@@ -12,8 +12,36 @@ const state = {
     sidebarCollapsed: false,
 };
 
+
+
+
+async function loadDashboard() {
+    try {
+        const response = await fetch("/dashboard-data");
+        const data = await response.json();
+        console.log(data)
+
+        document.getElementById("totalFiles").textContent = data.total_files;
+        document.getElementById("contacts").textContent = data.contacts;
+        document.getElementById("newContacts").textContent = data.new_contacts;
+        document.getElementById("duplicates").textContent = data.duplicates;
+        document.getElementById("failed").textContent = data.failed;
+        document.getElementById("accuracy").textContent = data.accuracy + "%";
+        document.getElementById("ocrConfidence").textContent = data.ocr_confidence + "%";
+        document.getElementById("aiConfidence").textContent = data.ai_confidence + "%";
+
+        document.getElementById("lastSync").textContent =
+            "Last synced: " + new Date().toLocaleTimeString();
+
+    } catch (error) {
+        console.error("Dashboard loading failed:", error);
+    }
+}
+
+
+
 /* ---------------- boot ---------------- */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     applyTheme(state.theme);
     initLoader();
     initSidebar();
@@ -21,12 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initRippleButtons();
     initRevealOnScroll();
     initToasts();
-
-    animateKpis();
-    loadQueue();
-    loadTimeline();
-    loadHealth();
-    initCharts();
+    //animateKpis();
+    await loadDashboard();
+   
 
     updateGreetingAndDate();
     setInterval(updateGreetingAndDate, 60000);
@@ -35,10 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('docsBtn').addEventListener('click', () => {
         window.open(`${API_BASE}/docs`, '_blank');
     });
-    document.getElementById('refreshQueue').addEventListener('click', () => {
-        loadQueue(true);
-        showToast('Queue refreshed', 'success', 'fa-rotate');
-    });
+   
     document.getElementById('notifBtn').addEventListener('click', () => {
         showToast('3 files finished processing in the last hour', 'info', 'fa-bell');
     });
@@ -440,66 +462,3 @@ async function runProcessing(){
     }
 }
 
-async function loadQueue() {
-
-    const response = await fetch("/processing-queue");
-    const data = await response.json();
-
-    const tbody = document.getElementById("queueBody");
-    tbody.innerHTML = "";
-
-    data.forEach(item => {
-
-        tbody.innerHTML += `
-        <tr>
-            <td>${item.filename}</td>
-            <td>${item.status}</td>
-            <td>${item.time}</td>
-            <td>${item.contacts}</td>
-            <td>${item.accuracy}</td>
-            <td>${item.confidence}</td>
-            <td>
-                <button class="btn-small">View</button>
-            </td>
-        </tr>`;
-    });
-}
-
-
-async function loadDashboard() {
-    try {
-        const response = await fetch("/dashboard-data");
-        const data = await response.json();
-
-        document.getElementById("totalFiles").textContent = data.total_files;
-        document.getElementById("contacts").textContent = data.contacts;
-        document.getElementById("newContacts").textContent = data.new_contacts;
-        document.getElementById("duplicates").textContent = data.duplicates;
-        document.getElementById("failed").textContent = data.failed;
-        document.getElementById("accuracy").textContent = data.accuracy + "%";
-        document.getElementById("ocrConfidence").textContent = data.ocr_confidence + "%";
-        document.getElementById("aiConfidence").textContent = data.ai_confidence + "%";
-
-        document.getElementById("lastSync").textContent =
-            "Last synced: " + new Date().toLocaleTimeString();
-
-    } catch (error) {
-        console.error("Dashboard loading failed:", error);
-    }
-}
-
-
-document.addEventListener("DOMContentLoaded", async () => {
-
-    try {
-
-        await loadDashboard();
-        await loadQueue();
-
-    } catch (error) {
-
-        console.error("Dashboard loading failed:", error);
-
-    }
-
-});
