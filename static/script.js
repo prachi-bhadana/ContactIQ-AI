@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     //animateKpis();
     await loadDashboard();
     await loadQueue();
+    await loadTimeline();
    
 
     updateGreetingAndDate();
@@ -339,19 +340,53 @@ const demoActivity = [
     { type: 'danger', icon: 'fa-triangle-exclamation', title: 'Processing failed', detail: 'scanned_form_09.pdf • low OCR confidence' },
 ];
 
-async function loadTimeline(){
-    const data = await safeFetch('/logs', demoActivity);
-    const list = Array.isArray(data) ? data : demoActivity;
+async function loadTimeline() {
+    const data = await safeFetch('/logs', []);
+
+    console.log("Timeline data:", data);
+
     const timeline = document.getElementById('timeline');
-    timeline.innerHTML = list.map((item, i) => `
-        <div class="timeline-item" style="animation-delay:${i * 0.08}s">
-            <div class="timeline-icon ${item.type}"><i class="fa-solid ${item.icon}"></i></div>
-            <div class="timeline-text">
-                <h4>${item.title}</h4>
-                <p>${item.detail}</p>
+
+    if (!timeline) return;
+
+    
+
+
+    timeline.innerHTML = data.map((item, i) => {
+
+        let type = 'info';
+        let icon = 'fa-file';
+        let title = 'File processed';
+
+        if (item.status === 'success') {
+            type = 'success';
+            icon = 'fa-check';
+            title = 'Contact saved successfully';
+        } 
+        else if (item.status === 'duplicate') {
+            type = 'warn';
+            icon = 'fa-clone';
+            title = 'Duplicate contact detected';
+        } 
+        else if (item.status === 'failed') {
+            type = 'danger';
+            icon = 'fa-triangle-exclamation';
+            title = 'Processing failed';
+        }
+
+        return `
+            <div class="timeline-item" style="animation-delay:${i * 0.08}s">
+                <div class="timeline-icon ${type}">
+                    <i class="fa-solid ${icon}"></i>
+                </div>
+
+                <div class="timeline-text">
+                    <h4>${title}</h4>
+                    <p>${item.file}</p>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 /* ---------------- AI health panel ---------------- */
