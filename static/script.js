@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadDashboard();
     await loadQueue();
     await loadTimeline();
+    await loadHealth();
    
 
     updateGreetingAndDate();
@@ -404,48 +405,84 @@ const demoHealth = {
     ]
 };
 
-async function loadHealth(){
-    const data = await safeFetch('/status', demoHealth);
-    const merged = {
-        statuses: data.statuses || demoHealth.statuses,
-        metrics: data.metrics || demoHealth.metrics,
-    };
-    const grid = document.getElementById('healthGrid');
+async function loadHealth() {
+    try {
+        const response = await fetch('/status');
 
-    const statusCards = merged.statuses.map(s => `
-        <div class="health-card">
-            <h4>${s.label}</h4>
-            <span class="health-pill ${s.up ? '' : 'down'}">
-                <i class="fa-solid fa-circle pulse-dot"></i> ${s.up ? 'Operational' : 'Down'}
-            </span>
-        </div>
-    `).join('');
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
 
-    const metricCards = merged.metrics.map(m => `
-        <div class="health-card">
-            <h4>${m.label}</h4>
-            <div class="health-ring" style="--p:0" data-target="${m.percent}">
-                <span>${m.percent}%</span>
+        const data = await response.json();
+
+        console.log("AI Health Data:", data);
+
+        const grid = document.getElementById('healthGrid');
+
+        const statuses = [
+            {
+                label: 'ContactIQ Pipeline',
+                up: data.status === 'running'
+            },
+            {
+                label: 'Database',
+                up: true
+            },
+            {
+                label: 'API Server',
+                up: true
+            }
+        ];
+
+        const metrics = [
+            {
+                label: 'Processing Accuracy',
+                percent: data.processing_accuracy
+            },
+            {
+                label: 'Files Processed',
+                value: data.total_files
+            },
+            {
+                label: 'Contacts Extracted',
+                value: data.total_contacts
+            }
+        ];
+
+        const statusCards = statuses.map(s => `
+            <div class="health-card">
+                <h4>${s.label}</h4>
+
+                <span class="health-pill ${s.up ? '' : 'down'}">
+                    <i class="fa-solid fa-circle pulse-dot"></i>
+                    ${s.up ? 'Operational' : 'Down'}
+                </span>
             </div>
-        </div>
-    `).join('');
+        `).join('');
 
-    grid.innerHTML = statusCards + metricCards;
+        const metricCards = metrics.map(m => `
+            <div class="health-card">
+                <h4>${m.label}</h4>
 
-    // animate rings after render
-    requestAnimationFrame(() => {
-        grid.querySelectorAll('.health-ring').forEach(ring => {
-            const target = parseFloat(ring.dataset.target || '0');
-            let current = 0;
-            const step = () => {
-                current += (target - current) * 0.12;
-                ring.style.setProperty('--p', current.toFixed(1));
-                if (Math.abs(target - current) > 0.5) requestAnimationFrame(step);
-                else ring.style.setProperty('--p', target);
-            };
-            requestAnimationFrame(step);
-        });
-    });
+                ${
+                    m.percent !== undefined
+                    ? `
+                        <div class="health-ring"
+                             style="--p:${m.percent}"
+                             data-target="${m.percent}">
+                            <span>${m.percent}%</span>
+                        </div>
+                    `
+                    : `<strong class="health-value">${m.value}</strong>`
+                }
+            </div>
+        `).join('');
+
+        grid.innerHTML = statusCards + metricCards;
+
+    } catch (error) {
+        console.error("AI Health Panel loading failed:", error);
+    }
 }
 
 /* ---------------- charts ---------------- */
