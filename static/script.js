@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initToasts();
     //animateKpis();
     await loadDashboard();
+    await loadQueue();
    
 
     updateGreetingAndDate();
@@ -226,43 +227,107 @@ const demoQueue = [
     { file: 'email_signature.png', status: 'pending', time: '--', contacts: 0, ocr: null, conf: null },
 ];
 
-async function loadQueue(forceSkeleton = false){
-    const tbody = document.getElementById('queueBody');
+/* ---------------- processing queue ---------------- */
 
-    if (forceSkeleton){
-        tbody.innerHTML = Array.from({length: 4}).map(() => `
-            <tr>
-                <td colspan="7"><span class="skeleton"></span></td>
-            </tr>`).join('');
+async function loadQueue(forceSkeleton = false) {
+    const tbody = document.getElementById("queueBody");
+
+    if (!tbody) {
+        console.error("queueBody element not found in HTML");
+        return;
     }
 
-    const data = await safeFetch('/process-folder', demoQueue);
-    renderQueue(Array.isArray(data) ? data : demoQueue);
+    if (forceSkeleton) {
+        tbody.innerHTML = Array.from({ length: 4 }).map(() => `
+            <tr>
+                <td colspan="7">
+                    <span class="skeleton"></span>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    try {
+        const response = await fetch("/processing-queue");
+
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Processing Queue Data:", data);
+
+        renderQueue(data);
+
+    } catch (error) {
+        console.error("Processing queue loading failed:", error);
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7">
+                    Unable to load processing queue.
+                </td>
+            </tr>
+        `;
+    }
 }
 
-function renderQueue(rows){
-    const tbody = document.getElementById('queueBody');
-    tbody.innerHTML = rows.map((row, i) => {
-        const statusMap = {
-            completed: { cls: 'completed', label: 'Completed' },
-            running: { cls: 'running', label: 'Running' },
-            failed: { cls: 'failed', label: 'Failed' },
-            pending: { cls: 'pending', label: 'Pending' },
-        };
-        const s = statusMap[row.status] || statusMap.pending;
+
+function renderQueue(rows) {
+    const tbody = document.getElementById("queueBody");
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7">No files in processing queue.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = rows.map((row, index) => {
+
+        const status = row.status.toLowerCase();
+
+        let statusClass = "pending";
+
+        if (status === "completed") {
+            statusClass = "completed";
+        } else if (status === "processing") {
+            statusClass = "running";
+        } else if (status === "failed") {
+            statusClass = "failed";
+        }
+
         return `
-        <tr style="animation-delay:${i * 0.06}s">
-            <td>${row.file}</td>
-            <td><span class="badge ${s.cls}">${s.label}</span></td>
-            <td>${row.time}</td>
-            <td>${row.contacts}</td>
-            <td>${row.ocr !== null ? row.ocr + '%' : '—'}</td>
-            <td>${row.conf !== null ? row.conf + '%' : '—'}</td>
-            <td>
-                <button class="row-action" title="View"><i class="fa-solid fa-eye"></i></button>
-            </td>
-        </tr>`;
-    }).join('');
+            <tr style="animation-delay:${index * 0.06}s">
+
+                <td>${row.filename}</td>
+
+                <td>
+                    <span class="badge ${statusClass}">
+                        ${row.status}
+                    </span>
+                </td>
+
+                <td>${row.time}</td>
+
+                <td>${row.contacts}</td>
+
+                <td>${row.accuracy}</td>
+
+                <td>${row.confidence}</td>
+
+                <td>
+                    <button class="row-action" title="View">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </td>
+
+            </tr>
+        `;
+    }).join("");
 }
 
 /* ---------------- activity timeline ---------------- */

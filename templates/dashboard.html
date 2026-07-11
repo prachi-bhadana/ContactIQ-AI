@@ -198,6 +198,55 @@
                 </div>
 
             </section>
+
+            <section class="panel-grid reveal">
+
+                <div class="panel queue-panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-list-check"></i>
+                                Processing Queue
+                            </h2>
+                            <p>Live document pipeline status</p>
+                        </div>
+
+                        <button class="btn-small" id="refreshQueue">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <div class="table-wrap">
+
+                        <table class="queue-table">
+
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Contacts</th>
+                                    <th>OCR Accuracy</th>
+                                    <th>Confidence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="queueBody">
+                                <!-- Real backend data will be inserted here -->
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
             <section class="health-section reveal">
                 <div class="panel-head">
                     <div>
