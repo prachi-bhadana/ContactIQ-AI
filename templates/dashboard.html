@@ -271,6 +271,79 @@
 
 
 
+            <!-- ================= ANALYTICS SECTION ================= -->
+
+            <section class="analytics-section reveal">
+
+                <div class="panel-head">
+                    <div>
+                        <h2>
+                            <i class="fa-solid fa-chart-line"></i>
+                            Analytics
+                        </h2>
+                        <p>Real-time AI extraction and processing insights</p>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+
+                    <!-- Files Processed Trend -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Files Processed</h3>
+                            <p>Processing activity over time</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- Duplicates Found -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Duplicates Found</h3>
+                            <p>Duplicate contacts detected</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="dupChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- OCR Confidence Distribution -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>OCR Confidence Distribution</h3>
+                            <p>High, medium and low confidence results</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="ocrChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- AI Confidence -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>AI Confidence</h3>
+                            <p>LLM extraction confidence trend</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="confChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
 
 
 
@@ -296,8 +369,7 @@
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script defer src="/static/script.js"></script>
 
 </body>

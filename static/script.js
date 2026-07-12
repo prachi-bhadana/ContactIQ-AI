@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadQueue();
     await loadTimeline();
     await loadHealth();
-   
+    await initCharts();
 
     updateGreetingAndDate();
     setInterval(updateGreetingAndDate, 60000);
@@ -499,78 +499,103 @@ function chartTheme(){
     };
 }
 
-function initCharts(){
+async function initCharts(){
     const t = chartTheme();
+
     Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.color = t.text;
 
-    new Chart(document.getElementById('trendChart'), {
-        type: 'line',
-        data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{
-                label: 'Files processed',
-                data: [120, 190, 160, 220, 260, 180, 240],
-                borderColor: t.accent2,
-                backgroundColor: `${t.accent2}22`,
-                fill: true,
-                tension: .4,
-                pointRadius: 0,
-                borderWidth: 2,
-            }]
-        },
-        options: chartOptions(t)
-    });
+    try {
+        const response = await fetch(`${API_BASE}/analytics`);
 
-    new Chart(document.getElementById('dupChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            datasets: [{
-                label: 'Duplicates found',
-                data: [8, 12, 6, 14, 9, 5, 11],
-                backgroundColor: t.warn,
-                borderRadius: 6,
-                maxBarThickness: 26,
-            }]
-        },
-        options: chartOptions(t)
-    });
-
-    new Chart(document.getElementById('ocrChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['High confidence', 'Medium', 'Low'],
-            datasets: [{
-                data: [78, 16, 6],
-                backgroundColor: [t.success, t.accent2, t.danger],
-                borderWidth: 0,
-            }]
-        },
-        options: {
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 16 } } },
-            cutout: '68%',
+        if (!response.ok) {
+            throw new Error(`Analytics API failed: ${response.status}`);
         }
-    });
 
-    new Chart(document.getElementById('confChart'), {
-        type: 'line',
-        data: {
-            labels: ['W1','W2','W3','W4','W5','W6'],
-            datasets: [{
-                label: 'AI confidence',
-                data: [88, 90, 93, 91, 95, 97],
-                borderColor: t.accent,
-                backgroundColor: `${t.accent}22`,
-                fill: true,
-                tension: .45,
-                pointRadius: 0,
-                borderWidth: 2,
-            }]
-        },
-        options: chartOptions(t)
-    });
+        const analyticsData = await response.json();
+
+        console.log("Analytics Data:", analyticsData);
+
+        new Chart(document.getElementById('trendChart'), {
+            type: 'line',
+            data: {
+                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                datasets: [{
+                    label: 'Files processed',
+                    data: analyticsData.files_processed,
+                    borderColor: t.accent2,
+                    backgroundColor: `${t.accent2}22`,
+                    fill: true,
+                    tension: .4,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                }]
+            },
+            options: chartOptions(t)
+        });
+
+        new Chart(document.getElementById('dupChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+                datasets: [{
+                    label: 'Duplicates found',
+                    data: analyticsData.duplicates_found,
+                    backgroundColor: t.warn,
+                    borderRadius: 6,
+                    maxBarThickness: 26,
+                }]
+            },
+            options: chartOptions(t)
+        });
+
+        new Chart(document.getElementById('ocrChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['High confidence', 'Medium', 'Low'],
+                datasets: [{
+                    data: analyticsData.ocr_distribution,
+                    backgroundColor: [t.success, t.accent2, t.danger],
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 10,
+                            padding: 16
+                        }
+                    }
+                },
+                cutout: '68%',
+            }
+        });
+
+        new Chart(document.getElementById('confChart'), {
+            type: 'line',
+            data: {
+                labels: ['W1','W2','W3','W4','W5','W6'],
+                datasets: [{
+                    label: 'AI confidence',
+                    data: analyticsData.ai_confidence,
+                    borderColor: t.accent,
+                    backgroundColor: `${t.accent}22`,
+                    fill: true,
+                    tension: .45,
+                    pointRadius: 0,
+                    borderWidth: 2,
+                }]
+            },
+            options: chartOptions(t)
+        });
+
+    } catch (error) {
+        console.error("Failed to load analytics:", error);
+    }
 }
+
 
 function chartOptions(t){
     return {
