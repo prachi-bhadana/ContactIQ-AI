@@ -556,7 +556,7 @@ async function initCharts(){
             options: chartOptions(t)
         });
 
-        trendChartInstance = new Chart(document.getElementById('trendChart'), {
+        dupChartInstance = new Chart(document.getElementById('dupChart'), {
             type: 'bar',
             data: {
                 labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
@@ -571,7 +571,7 @@ async function initCharts(){
             options: chartOptions(t)
         });
 
-        trendChartInstance = new Chart(document.getElementById('trendChart'), {
+        ocrChartInstance = new Chart(document.getElementById('ocrChart'), {
             type: 'doughnut',
             data: {
                 labels: ['High confidence', 'Medium', 'Low'],
@@ -595,7 +595,7 @@ async function initCharts(){
             }
         });
 
-        trendChartInstance = new Chart(document.getElementById('trendChart'), {
+        confChartInstance = new Chart(document.getElementById('confChart'), {
             type: 'line', 
             data: {
                 labels: ['W1','W2','W3','W4','W5','W6'],
