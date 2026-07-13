@@ -45,27 +45,42 @@
         </div>
 
         <nav class="menu">
+
             <a href="#" class="menu-item active" id="dashboardMenu" data-tooltip="Dashboard">
-                <i class="fa-solid fa-grip"></i><span>Dashboard</span>
+                <i class="fa-solid fa-grip"></i>
+                <span>Dashboard</span>
             </a>
+
             <a href="#" class="menu-item" id="contactsMenu" data-tooltip="Contacts">
-                <i class="fa-solid fa-address-book"></i><span>Contacts</span>
+                <i class="fa-solid fa-address-book"></i>
+                <span>Contacts</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="Processing Queue">
-                <i class="fa-solid fa-layer-group"></i><span>Processing Queue</span>
+
+            <a href="#" class="menu-item" id="processingQueueMenu" data-tooltip="Processing Queue">
+                <i class="fa-solid fa-layer-group"></i>
+                <span>Processing Queue</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="Analytics">
-                <i class="fa-solid fa-chart-pie"></i><span>Analytics</span>
+
+            <a href="#" class="menu-item" id="analyticsMenu" data-tooltip="Analytics">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Analytics</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="Duplicate Review">
-                <i class="fa-solid fa-clone"></i><span>Duplicate Review</span>
+
+            <a href="#" class="menu-item" id="duplicateReviewMenu" data-tooltip="Duplicate Review">
+                <i class="fa-solid fa-clone"></i>
+                <span>Duplicate Review</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="OCR Logs">
-                <i class="fa-solid fa-file-waveform"></i><span>OCR Logs</span>
+
+            <a href="#" class="menu-item" id="ocrLogsMenu" data-tooltip="OCR Logs">
+                <i class="fa-solid fa-file-waveform"></i>
+                <span>OCR Logs</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="Settings">
-                <i class="fa-solid fa-sliders"></i><span>Settings</span>
+
+            <a href="#" class="menu-item" id="settingsMenu" data-tooltip="Settings">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Settings</span>
             </a>
+
         </nav>
 
         <div class="sidebar-bottom">
@@ -190,6 +205,75 @@
             </section>
 
             <!-- ================= END CONTACTS VIEW ================= -->
+
+
+            <!-- ================= PROCESSING QUEUE VIEW ================= -->
+
+            <section id="processingQueueView" class="processing-queue-view" style="display: none;">
+
+                <div class="contacts-header">
+                    <div>
+                        <span class="eyebrow">
+                            <i class="fa-solid fa-layer-group"></i>
+                            AI Processing Pipeline
+                        </span>
+
+                        <h1>Processing Queue</h1>
+                        <p>Monitor files moving through the OCR and AI extraction pipeline.</p>
+                    </div>
+
+                    <div class="contacts-header-actions">
+                        <button class="btn btn-ghost" id="refreshProcessingQueueBtn">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel queue-panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-list-check"></i>
+                                Pipeline Activity
+                            </h2>
+                            <p>Live document processing status</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+
+                        <table class="queue-table">
+
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Contacts</th>
+                                    <th>OCR Accuracy</th>
+                                    <th>Confidence</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="processingQueueViewBody">
+                                <!-- JavaScript will insert real backend data -->
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ================= END PROCESSING QUEUE VIEW ================= -->
+
+
+
 
 
 

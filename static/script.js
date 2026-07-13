@@ -121,7 +121,112 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-    
+    const processingQueueMenu = document.getElementById('processingQueueMenu');
+
+        if (processingQueueMenu) {
+            processingQueueMenu.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                const mainContent = document.getElementById('mainContent');
+                const processingQueueView = document.getElementById('processingQueueView');
+
+                // Hide every dashboard/view section
+                Array.from(mainContent.children).forEach(child => {
+                    child.style.display = 'none';
+                });
+
+                // Show Processing Queue view
+                if (processingQueueView) {
+                    processingQueueView.style.display = 'block';
+                }
+
+                // Update active sidebar item
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                processingQueueMenu.classList.add('active');
+
+                // Load real processing queue data
+                await loadProcessingQueueView();
+            });
+        }
+
+async function loadProcessingQueueView() {
+    try {
+        const response = await fetch(`${API_BASE}/processing-queue`);
+
+        if (!response.ok) {
+            throw new Error(`Processing Queue API failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Processing Queue View Data:", data);
+
+        const tbody = document.getElementById('processingQueueViewBody');
+
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center;">
+                        No processing activity found.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        data.forEach(item => {
+            const row = document.createElement('tr');
+
+            row.innerHTML = `
+                <td>${item.file || 'Unknown'}</td>
+
+                <td>
+                    <span class="status ${item.status || ''}">
+                        ${item.status || 'Unknown'}
+                    </span>
+                </td>
+
+                <td>${item.time || '—'}</td>
+
+                <td>${item.contacts ?? 0}</td>
+
+                <td>${item.ocr_accuracy ?? '—'}</td>
+
+                <td>${item.confidence ?? '—'}</td>
+
+                <td>
+                    <button class="btn-small">
+                        <i class="fa-solid fa-eye"></i>
+                        View
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error("Failed to load Processing Queue View:", error);
+    }
+}
+
+const refreshProcessingQueueBtn =
+    document.getElementById('refreshProcessingQueueBtn');
+
+if (refreshProcessingQueueBtn) {
+    refreshProcessingQueueBtn.addEventListener('click', async () => {
+        await loadProcessingQueueView();
+    });
+}
+
+
 
     updateGreetingAndDate();
     setInterval(updateGreetingAndDate, 60000);
