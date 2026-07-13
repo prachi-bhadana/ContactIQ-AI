@@ -486,6 +486,10 @@ async function loadHealth() {
 }
 
 /* ---------------- charts ---------------- */
+let trendChartInstance = null;
+let dupChartInstance = null;
+let ocrChartInstance = null;
+let confChartInstance = null;
 function chartTheme(){
     const styles = getComputedStyle(document.documentElement);
     return {
@@ -500,6 +504,19 @@ function chartTheme(){
 }
 
 async function initCharts(){
+    const chartIds = ['trendChart', 'dupChart', 'ocrChart', 'confChart'];
+
+    chartIds.forEach(id => {
+        const canvas = document.getElementById(id);
+
+        if (canvas) {
+            const existingChart = Chart.getChart(canvas);
+
+            if (existingChart) {
+                existingChart.destroy();
+            }
+        }
+    });
     const t = chartTheme();
 
     Chart.defaults.font.family = "'Inter', sans-serif";
@@ -516,7 +533,12 @@ async function initCharts(){
 
         console.log("Analytics Data:", analyticsData);
 
-        new Chart(document.getElementById('trendChart'), {
+        if (trendChartInstance) trendChartInstance.destroy();
+        if (dupChartInstance) dupChartInstance.destroy();
+        if (ocrChartInstance) ocrChartInstance.destroy();
+        if (confChartInstance) confChartInstance.destroy();
+
+        trendChartInstance = new Chart(document.getElementById('trendChart'), {
             type: 'line',
             data: {
                 labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
@@ -534,7 +556,7 @@ async function initCharts(){
             options: chartOptions(t)
         });
 
-        new Chart(document.getElementById('dupChart'), {
+        trendChartInstance = new Chart(document.getElementById('trendChart'), {
             type: 'bar',
             data: {
                 labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
@@ -549,7 +571,7 @@ async function initCharts(){
             options: chartOptions(t)
         });
 
-        new Chart(document.getElementById('ocrChart'), {
+        trendChartInstance = new Chart(document.getElementById('trendChart'), {
             type: 'doughnut',
             data: {
                 labels: ['High confidence', 'Medium', 'Low'],
@@ -573,8 +595,8 @@ async function initCharts(){
             }
         });
 
-        new Chart(document.getElementById('confChart'), {
-            type: 'line',
+        trendChartInstance = new Chart(document.getElementById('trendChart'), {
+            type: 'line', 
             data: {
                 labels: ['W1','W2','W3','W4','W5','W6'],
                 datasets: [{
@@ -610,17 +632,72 @@ function chartOptions(t){
 }
 
 /* ---------------- run processing action ---------------- */
-async function runProcessing(){
-    showToast('Processing started…', 'info', 'fa-play');
-    try{
-        const res = await fetch(`${API_BASE}/process-folder`, { method: 'POST' });
-        if (!res.ok) throw new Error('Request failed');
-        showToast('Processing job queued successfully', 'success', 'fa-circle-check');
-        loadQueue(true);
-    }catch(err){
-        console.warn('[ContactIQ] /process-folder unreachable, simulating locally —', err.message);
-        showToast('Backend unreachable — showing demo results', 'warn', 'fa-triangle-exclamation');
-        loadQueue(true);
+async function runProcessing() {
+    const processBtn = document.getElementById('processBtn');
+
+    processBtn.disabled = true;
+    processBtn.innerHTML = `
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        Processing...
+    `;
+
+    showToast(
+        'Processing started…',
+        'info',
+        'fa-play'
+    );
+
+    // Remember when processing started
+    const startTime = Date.now();
+
+    try {
+        const res = await fetch(`${API_BASE}/process-folder`, {
+            method: 'POST'
+        });
+
+        if (!res.ok) {
+            throw new Error(`Request failed with status ${res.status}`);
+        }
+
+        const result = await res.json();
+
+        console.log('Processing result:', result);
+
+        // Refresh all live dashboard sections
+        await loadDashboard();
+        await loadQueue();
+        await loadTimeline();
+        await loadHealth();
+        await initCharts();
+
+        // Keep Processing... visible for at least 1 second
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, 1000 - elapsed);
+
+        if (remaining > 0) {
+            await new Promise(resolve => setTimeout(resolve, remaining));
+        }
+
+        showToast(
+            'Processing completed successfully',
+            'success',
+            'fa-circle-check'
+        );
+
+    } catch (err) {
+        console.error('[ContactIQ] Processing failed:', err);
+
+        showToast(
+            'Processing failed. Please check the backend.',
+            'danger',
+            'fa-triangle-exclamation'
+        );
+
+    } finally {
+        processBtn.disabled = false;
+        processBtn.innerHTML = `
+            <i class="fa-solid fa-play"></i>
+            Run Processing
+        `;
     }
 }
-
