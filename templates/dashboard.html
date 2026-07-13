@@ -273,6 +273,86 @@
             <!-- ================= END PROCESSING QUEUE VIEW ================= -->
 
 
+            <!-- ================= ANALYTICS VIEW ================= -->
+
+            <section id="analyticsView" class="analytics-view" style="display: none;">
+
+                <div class="contacts-header">
+                    <div>
+                        <span class="eyebrow">
+                            <i class="fa-solid fa-chart-pie"></i>
+                            AI Processing Intelligence
+                        </span>
+
+                        <h1>Analytics</h1>
+
+                        <p>
+                            Monitor real-time OCR performance, duplicate detection
+                            and AI confidence insights.
+                        </p>
+                    </div>
+
+                    <div class="contacts-header-actions">
+                        <button class="btn btn-ghost" id="refreshAnalyticsBtn">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Files Processed</h3>
+                            <p>Processing activity over time</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="analyticsTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Duplicates Found</h3>
+                            <p>Duplicate contacts detected</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="analyticsDupChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>OCR Confidence Distribution</h3>
+                            <p>High, medium and low confidence results</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="analyticsOcrChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>AI Confidence</h3>
+                            <p>LLM extraction confidence trend</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="analyticsConfChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ================= END ANALYTICS VIEW ================= -->
+
+
 
 
 

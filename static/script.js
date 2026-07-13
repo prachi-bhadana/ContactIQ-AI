@@ -94,20 +94,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dashboardMenu = document.getElementById('dashboardMenu');
 
         if (dashboardMenu) {
-            dashboardMenu.addEventListener('click', (e) => {
+            dashboardMenu.addEventListener('click', async (e) => {
                 e.preventDefault();
 
                 const mainContent = document.getElementById('mainContent');
-                const contactsView = document.getElementById('contactsView');
 
-                // Hide Contacts View
-                if (contactsView) {
-                    contactsView.style.display = 'none';
-                }
+                // These are separate sidebar views, not part of the main dashboard
+                const separateViews = [
+                    'contactsView',
+                    'processingQueueView',
+                    'analyticsView'
+                ];
 
-                // Show all normal dashboard sections again
+                // Hide separate views and show normal dashboard sections
                 Array.from(mainContent.children).forEach(child => {
-                    if (child.id !== 'contactsView') {
+                    if (separateViews.includes(child.id)) {
+                        child.style.display = 'none';
+                    } else {
                         child.style.display = '';
                     }
                 });
@@ -118,6 +121,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 dashboardMenu.classList.add('active');
+
+                // Resize existing charts after making dashboard visible again
+                setTimeout(() => {
+                    if (trendChartInstance) trendChartInstance.resize();
+                    if (dupChartInstance) dupChartInstance.resize();
+                    if (ocrChartInstance) ocrChartInstance.resize();
+                    if (confChartInstance) confChartInstance.resize();
+                }, 100);
             });
         }
 
@@ -151,6 +162,58 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await loadProcessingQueueView();
             });
         }
+
+
+        const analyticsMenu = document.getElementById('analyticsMenu');
+
+            if (analyticsMenu) {
+                analyticsMenu.addEventListener('click', async (e) => {
+                    e.preventDefault();
+
+                    const mainContent = document.getElementById('mainContent');
+                    const analyticsView = document.getElementById('analyticsView');
+
+                    // Hide all current dashboard sections/views
+                    Array.from(mainContent.children).forEach(child => {
+                        child.style.display = 'none';
+                    });
+
+                    // Show only Analytics View
+                    if (analyticsView) {
+                        analyticsView.style.display = 'block';
+                    }
+
+                    // Update active sidebar item
+                    document.querySelectorAll('.menu-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+
+                    analyticsMenu.classList.add('active');
+
+                    // Wait briefly so the visible canvas gets its correct dimensions
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
+                    // Load real analytics data and render charts
+                    await loadAnalyticsView();
+                });
+            }
+
+            const refreshAnalyticsBtn = document.getElementById('refreshAnalyticsBtn');
+
+                if (refreshAnalyticsBtn) {
+                    refreshAnalyticsBtn.addEventListener('click', async () => {
+                        await loadAnalyticsView();
+
+                        showToast(
+                            'Analytics refreshed successfully',
+                            'success',
+                            'fa-circle-check'
+                        );
+                    });
+                }
+
+
+
 
 async function loadProcessingQueueView() {
     try {
@@ -662,6 +725,10 @@ let trendChartInstance = null;
 let dupChartInstance = null;
 let ocrChartInstance = null;
 let confChartInstance = null;
+let analyticsTrendInstance = null;
+let analyticsDupInstance = null;
+let analyticsOcrInstance = null;
+let analyticsConfInstance = null;
 function chartTheme(){
     const styles = getComputedStyle(document.documentElement);
     return {
@@ -871,6 +938,141 @@ async function runProcessing() {
             <i class="fa-solid fa-play"></i>
             Run Processing
         `;
+    }
+}
+
+
+async function loadAnalyticsView() {
+
+    try {
+        const response = await fetch(`${API_BASE}/analytics`);
+
+        if (!response.ok) {
+            throw new Error(`Analytics API failed: ${response.status}`);
+        }
+
+        const analyticsData = await response.json();
+
+        console.log("Analytics View Data:", analyticsData);
+
+        const t = chartTheme();
+
+        // Destroy old chart instances before creating new ones
+        if (analyticsTrendInstance) {
+            analyticsTrendInstance.destroy();
+        }
+
+        if (analyticsDupInstance) {
+            analyticsDupInstance.destroy();
+        }
+
+        if (analyticsOcrInstance) {
+            analyticsOcrInstance.destroy();
+        }
+
+        if (analyticsConfInstance) {
+            analyticsConfInstance.destroy();
+        }
+
+        // 1. Files Processed
+        analyticsTrendInstance = new Chart(
+            document.getElementById('analyticsTrendChart'),
+            {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Files processed',
+                        data: analyticsData.files_processed,
+                        borderColor: t.accent2,
+                        backgroundColor: `${t.accent2}22`,
+                        fill: true,
+                        tension: .4,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: chartOptions(t)
+            }
+        );
+
+        // 2. Duplicates Found
+        analyticsDupInstance = new Chart(
+            document.getElementById('analyticsDupChart'),
+            {
+                type: 'bar',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Duplicates found',
+                        data: analyticsData.duplicates_found,
+                        backgroundColor: t.warn,
+                        borderRadius: 6,
+                        maxBarThickness: 26
+                    }]
+                },
+                options: chartOptions(t)
+            }
+        );
+
+        // 3. OCR Confidence Distribution
+        analyticsOcrInstance = new Chart(
+            document.getElementById('analyticsOcrChart'),
+            {
+                type: 'doughnut',
+                data: {
+                    labels: ['High confidence', 'Medium', 'Low'],
+                    datasets: [{
+                        data: analyticsData.ocr_distribution,
+                        backgroundColor: [
+                            t.success,
+                            t.accent2,
+                            t.danger
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                padding: 16
+                            }
+                        }
+                    },
+                    cutout: '68%',
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            }
+        );
+
+        // 4. AI Confidence
+        analyticsConfInstance = new Chart(
+            document.getElementById('analyticsConfChart'),
+            {
+                type: 'line',
+                data: {
+                    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'],
+                    datasets: [{
+                        label: 'AI confidence',
+                        data: analyticsData.ai_confidence,
+                        borderColor: t.accent,
+                        backgroundColor: `${t.accent}22`,
+                        fill: true,
+                        tension: .45,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: chartOptions(t)
+            }
+        );
+
+    } catch (error) {
+        console.error("Failed to load Analytics View:", error);
     }
 }
 
