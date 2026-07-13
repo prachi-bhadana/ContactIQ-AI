@@ -508,6 +508,33 @@ def process_folder():
                 "processing_logs" :processing_logs
     }
     
+@app.get("/contacts")
+def get_contacts():
+    db = SessionLocal()
+
+    try:
+        contacts = db.query(Contact).all()
+
+        return [
+            {
+                "id": contact.id,
+                "full_name": contact.full_name,
+                "email": contact.email,
+                "phone": contact.phone,
+                "organization": contact.organization,
+                "designation": contact.designation,
+                "city": contact.city,
+                "country": contact.country,
+                "confidence": contact.confidence,
+                "processing_status": contact.processing_status
+            }
+            for contact in contacts
+        ]
+
+    finally:
+        db.close() 
+
+    
     
 @app.get("/dashboard-data")
 def dashboard_data():

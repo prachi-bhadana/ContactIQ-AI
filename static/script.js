@@ -56,6 +56,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadHealth();
     await initCharts();
 
+
+    const contactsMenu = document.getElementById('contactsMenu');
+
+        if (contactsMenu) {
+            contactsMenu.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                // Update active sidebar item
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                contactsMenu.classList.add('active');
+
+                // Get main content
+                const mainContent = document.getElementById('mainContent');
+
+                // Hide all dashboard sections
+                Array.from(mainContent.children).forEach(child => {
+                    child.style.display = 'none';
+                });
+
+                // Show only Contacts View
+                const contactsView = document.getElementById('contactsView');
+
+                if (contactsView) {
+                    contactsView.style.display = 'block';
+                }
+
+                // Load contacts from backend
+                await loadContacts();
+            });
+        }
+
+
+    const dashboardMenu = document.getElementById('dashboardMenu');
+
+        if (dashboardMenu) {
+            dashboardMenu.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                const mainContent = document.getElementById('mainContent');
+                const contactsView = document.getElementById('contactsView');
+
+                // Hide Contacts View
+                if (contactsView) {
+                    contactsView.style.display = 'none';
+                }
+
+                // Show all normal dashboard sections again
+                Array.from(mainContent.children).forEach(child => {
+                    if (child.id !== 'contactsView') {
+                        child.style.display = '';
+                    }
+                });
+
+                // Update active sidebar item
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                dashboardMenu.classList.add('active');
+            });
+        }
+
+    
+
     updateGreetingAndDate();
     setInterval(updateGreetingAndDate, 60000);
 
@@ -700,4 +767,116 @@ async function runProcessing() {
             Run Processing
         `;
     }
+}
+
+
+
+/* ================= CONTACTS VIEW ================= */
+
+let allContacts = [];
+
+async function loadContacts() {
+    const tableBody = document.getElementById('contactsTableBody');
+    const countText = document.getElementById('contactsCount');
+
+    if (!tableBody) return;
+
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="8">Loading contacts...</td>
+        </tr>
+    `;
+
+    try {
+        const response = await fetch(`${API_BASE}/contacts`);
+
+        if (!response.ok) {
+            throw new Error(`Contacts API failed: ${response.status}`);
+        }
+
+        allContacts = await response.json();
+
+        console.log("Contacts Data:", allContacts);
+
+        renderContacts(allContacts);
+
+    } catch (error) {
+        console.error("Failed to load contacts:", error);
+
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8">Failed to load contacts.</td>
+            </tr>
+        `;
+
+        if (countText) {
+            countText.textContent = 'Unable to load contacts';
+        }
+    }
+}
+
+
+function renderContacts(contacts) {
+    const tableBody = document.getElementById('contactsTableBody');
+    const countText = document.getElementById('contactsCount');
+
+    if (!tableBody) return;
+
+    if (countText) {
+        countText.textContent = `${contacts.length} contact${contacts.length !== 1 ? 's' : ''} found`;
+    }
+
+    if (contacts.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8">No contacts found.</td>
+            </tr>
+        `;
+        return;
+    }
+
+    tableBody.innerHTML = contacts.map(contact => {
+
+        const location = [contact.city, contact.country]
+            .filter(Boolean)
+            .join(', ') || '—';
+
+        const confidence = contact.confidence != null
+            ? `${contact.confidence}%`
+            : '—';
+
+        return `
+            <tr>
+                <td>
+                    <strong>${contact.full_name || 'Unknown'}</strong>
+                </td>
+
+                <td>${contact.email || '—'}</td>
+
+                <td>${contact.phone || '—'}</td>
+
+                <td>${contact.organization || '—'}</td>
+
+                <td>${contact.designation || '—'}</td>
+
+                <td>${location}</td>
+
+                <td>
+                    <span class="status-pill success">
+                        ${confidence}
+                    </span>
+                </td>
+
+                <td>
+                    <button
+                        class="icon-action"
+                        onclick="viewContact(${contact.id})"
+                        title="View contact"
+                    >
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }

@@ -45,10 +45,10 @@
         </div>
 
         <nav class="menu">
-            <a href="#" class="menu-item active" data-tooltip="Dashboard">
+            <a href="#" class="menu-item active" id="dashboardMenu" data-tooltip="Dashboard">
                 <i class="fa-solid fa-grip"></i><span>Dashboard</span>
             </a>
-            <a href="#" class="menu-item" data-tooltip="Contacts">
+            <a href="#" class="menu-item" id="contactsMenu" data-tooltip="Contacts">
                 <i class="fa-solid fa-address-book"></i><span>Contacts</span>
             </a>
             <a href="#" class="menu-item" data-tooltip="Processing Queue">
@@ -116,6 +116,82 @@
         </header>
 
         <main class="content" id="mainContent">
+
+
+            <!-- ================= CONTACTS VIEW ================= -->
+
+            <section id="contactsView" class="contacts-view" style="display: none;">
+
+                <div class="contacts-header">
+                    <div>
+                        <span class="eyebrow">
+                            <i class="fa-solid fa-address-book"></i>
+                            CRM Contact Database
+                        </span>
+
+                        <h1>Contacts</h1>
+                        <p>View and manage contacts extracted by the AI pipeline.</p>
+                    </div>
+
+                    <div class="contacts-header-actions">
+                        <button class="btn btn-ghost" id="refreshContactsBtn">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel contacts-panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-users"></i>
+                                Extracted Contacts
+                            </h2>
+                            <p id="contactsCount">Loading contacts...</p>
+                        </div>
+
+                        <div class="contacts-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input
+                                type="text"
+                                id="contactsSearchInput"
+                                placeholder="Search contacts..."
+                            >
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="queue-table contacts-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Organization</th>
+                                    <th>Designation</th>
+                                    <th>Location</th>
+                                    <th>Confidence</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="contactsTableBody">
+                                <!-- Real contacts will be inserted by JavaScript -->
+                            </tbody>
+
+                        </table>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ================= END CONTACTS VIEW ================= -->
+
+
 
             <section class="hero reveal">
                 <span class="eyebrow"><i class="fa-solid fa-sparkles"></i> OCR + LLM extraction pipeline</span>
