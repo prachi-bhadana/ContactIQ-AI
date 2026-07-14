@@ -104,7 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     'contactsView',
                     'processingQueueView',
                     'analyticsView',
-                    'duplicateReviewView'
+                    'duplicateReviewView',
+                    'ocrLogsView'
                 ];
 
                 // Hide separate views and show normal dashboard sections
@@ -240,7 +241,67 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Later, we'll load real duplicate data here
                         await loadDuplicates();
                             });
+                        }
+
+            const ocrLogsMenu = document.getElementById('ocrLogsMenu');
+
+                if (ocrLogsMenu) {
+                    ocrLogsMenu.addEventListener('click', async (e) => {
+                        e.preventDefault();
+
+                        const mainContent = document.getElementById('mainContent');
+                        const ocrLogsView = document.getElementById('ocrLogsView');
+
+                        // Hide every direct section inside main content
+                        Array.from(mainContent.children).forEach(child => {
+                            child.style.display = 'none';
+                        });
+
+                        // Show only OCR Logs view
+                        if (ocrLogsView) {
+                            ocrLogsView.style.display = 'block';
+                        }
+
+                        // Update active sidebar item
+                        document.querySelectorAll('.menu-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+
+                        ocrLogsMenu.classList.add('active');
+                    });
+                }
+
+                            
+
+            
+const ocrLogsMenu = document.getElementById('ocrLogsMenu');
+
+if (ocrLogsMenu) {
+    ocrLogsMenu.addEventListener('click', async (e) => {
+        e.preventDefault();
+
+        const mainContent = document.getElementById('mainContent');
+        const ocrLogsView = document.getElementById('ocrLogsView');
+
+        // Hide every direct section inside main content
+        Array.from(mainContent.children).forEach(child => {
+            child.style.display = 'none';
+        });
+
+        // Show only OCR Logs view
+        if (ocrLogsView) {
+            ocrLogsView.style.display = 'block';
         }
+
+        // Update active sidebar item
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        ocrLogsMenu.classList.add('active');
+    });
+}
+
 async function loadDuplicates() {
     try {
         const response = await fetch(`${API_BASE}/duplicates`);

@@ -415,6 +415,65 @@
 
             <!-- ================= END DUPLICATE REVIEW VIEW ================= -->
 
+            <!-- ================= OCR LOGS VIEW ================= -->
+
+            <section id="ocrLogsView" class="ocr-logs-view" style="display: none;">
+
+                <div class="contacts-header">
+                    <div>
+                        <span class="eyebrow">
+                            <i class="fa-solid fa-file-waveform"></i>
+                            OCR Processing Intelligence
+                        </span>
+
+                        <h1>OCR Logs</h1>
+                        <p>View OCR extraction results, confidence scores, and processing status.</p>
+                    </div>
+
+                    <div class="contacts-header-actions">
+                        <button class="btn btn-ghost" id="refreshOcrLogsBtn">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-file-lines"></i>
+                                OCR Processing Logs
+                            </h2>
+
+                            <p id="ocrLogsSummary">Loading OCR logs...</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="queue-table">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Status</th>
+                                    <th>OCR Confidence</th>
+                                    <th>Processing Result</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="ocrLogsTableBody">
+                                <!-- Real OCR logs will be inserted by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ================= END OCR LOGS VIEW ================= -->
+
 
             <section class="hero reveal">
                 <span class="eyebrow"><i class="fa-solid fa-sparkles"></i> OCR + LLM extraction pipeline</span>
