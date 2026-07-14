@@ -55,8 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTimeline();
     await loadHealth();
     await initCharts();
-    await loadDuplicates();
-
+    
 
     const contactsMenu = document.getElementById('contactsMenu');
 
@@ -984,7 +983,7 @@ async function runProcessing() {
         await loadTimeline();
         await loadHealth();
         await initCharts();
-        await loadDuplicates();
+         //await loadDuplicates();
 
         // Keep Processing... visible for at least 1 second
         const elapsed = Date.now() - startTime;
