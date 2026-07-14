@@ -353,8 +353,67 @@
             <!-- ================= END ANALYTICS VIEW ================= -->
 
 
+            <!-- ================= DUPLICATE REVIEW VIEW ================= -->
+
+            <section id="duplicateReviewView" class="duplicate-review-view" style="display: none;">
+
+                <div class="contacts-header">
+                    <div>
+                        <span class="eyebrow">
+                            <i class="fa-solid fa-clone"></i>
+                            AI Duplicate Detection
+                        </span>
+
+                        <h1>Duplicate Review</h1>
+
+                        <p>
+                            Review potential duplicate contacts detected by matching
+                            email addresses and phone numbers.
+                        </p>
+                    </div>
+
+                    <div class="contacts-header-actions">
+                        <button class="btn btn-ghost" id="refreshDuplicatesBtn">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
 
 
+                <!-- Duplicate Summary -->
+
+                <div class="panel duplicate-summary-panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-shield-halved"></i>
+                                Duplicate Detection Summary
+                            </h2>
+
+                            <p id="duplicateSummaryText">
+                                Loading duplicate information...
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <!-- Duplicate Groups -->
+
+                <div id="duplicateGroupsContainer">
+
+                    <div class="panel">
+                        <p>Loading duplicate contacts...</p>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- ================= END DUPLICATE REVIEW VIEW ================= -->
 
 
             <section class="hero reveal">

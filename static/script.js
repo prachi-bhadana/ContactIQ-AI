@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTimeline();
     await loadHealth();
     await initCharts();
+    await loadDuplicates();
 
 
     const contactsMenu = document.getElementById('contactsMenu');
@@ -103,7 +104,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const separateViews = [
                     'contactsView',
                     'processingQueueView',
-                    'analyticsView'
+                    'analyticsView',
+                    'duplicateReviewView'
                 ];
 
                 // Hide separate views and show normal dashboard sections
@@ -212,6 +214,80 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                 }
 
+            const duplicateReviewMenu = document.getElementById('duplicateReviewMenu');
+
+                if (duplicateReviewMenu) {
+                    duplicateReviewMenu.addEventListener('click', async (e) => {
+                        e.preventDefault();
+
+                        const mainContent = document.getElementById('mainContent');
+                        const duplicateReviewView = document.getElementById('duplicateReviewView');
+
+                        // Hide all direct children of mainContent
+                        Array.from(mainContent.children).forEach(child => {
+                            child.style.display = 'none';
+                        });
+
+                        // Show only Duplicate Review view
+                        duplicateReviewView.style.display = 'block';
+
+                        // Update active sidebar item
+                        document.querySelectorAll('.menu-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+
+                        duplicateReviewMenu.classList.add('active');
+
+                        // Later, we'll load real duplicate data here
+                        await loadDuplicates();
+                            });
+        }
+async function loadDuplicates() {
+    try {
+        const response = await fetch(`${API_BASE}/duplicates`);
+
+        if (!response.ok) {
+            throw new Error(`Duplicates API failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        console.log("Duplicate Data:", data);
+
+        const summary = document.getElementById('duplicateSummary');
+        const container = document.getElementById('duplicateList');
+
+        if (summary) {
+            summary.textContent = `${data.duplicate_groups || 0} duplicate groups detected`;
+        }
+
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (!data.duplicates || data.duplicates.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <h3>No duplicate contacts found</h3>
+                    <p>Your contact database currently has no duplicate contact groups.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // We'll render actual duplicate cards here in the next step.
+
+    } catch (error) {
+        console.error("Failed to load duplicates:", error);
+
+        const summary = document.getElementById('duplicateSummary');
+
+        if (summary) {
+            summary.textContent = 'Failed to load duplicate information';
+        }
+    }
+}
 
 
 
@@ -908,6 +984,7 @@ async function runProcessing() {
         await loadTimeline();
         await loadHealth();
         await initCharts();
+        await loadDuplicates();
 
         // Keep Processing... visible for at least 1 second
         const elapsed = Date.now() - startTime;

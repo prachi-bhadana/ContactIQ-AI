@@ -602,6 +602,83 @@ def get_analytics():
 
     finally:
         db.close()
+        
+@app.get("/duplicates")
+def get_duplicates():
+    db = SessionLocal()
+
+    try:
+        contacts = db.query(Contact).all()
+
+        duplicate_groups = []
+        processed_ids = set()
+
+        for contact in contacts:
+
+            if contact.id in processed_ids:
+                continue
+
+            matches = []
+
+            for other in contacts:
+
+                if contact.id == other.id:
+                    continue
+
+                same_email = (
+                    contact.email
+                    and other.email
+                    and contact.email.strip().lower()
+                    == other.email.strip().lower()
+                )
+
+                same_phone = (
+                    contact.phone
+                    and other.phone
+                    and contact.phone.strip()
+                    == other.phone.strip()
+                )
+
+                if same_email or same_phone:
+                    matches.append(other)
+
+            if matches:
+
+                group = [contact] + matches
+
+                duplicate_groups.append({
+                    "group_id": contact.id,
+
+                    "match_reason": (
+                        "Same email or phone number"
+                    ),
+
+                    "contacts": [
+                        {
+                            "id": item.id,
+                            "full_name": item.full_name,
+                            "email": item.email,
+                            "phone": item.phone,
+                            "organization": item.organization,
+                            "designation": item.designation,
+                            "city": item.city,
+                            "country": item.country,
+                            "confidence": item.confidence
+                        }
+                        for item in group
+                    ]
+                })
+
+                for item in group:
+                    processed_ids.add(item.id)
+
+        return {
+            "duplicate_groups": len(duplicate_groups),
+            "duplicates": duplicate_groups
+        }
+
+    finally:
+        db.close()
     
 @app.get("/logs")
 def get_logs():
