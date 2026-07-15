@@ -268,39 +268,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
 
                         ocrLogsMenu.classList.add('active');
+
+                         await loadOCRLogs();
                     });
                 }
 
                             
 
             
-const ocrLogsMenu = document.getElementById('ocrLogsMenu');
 
-if (ocrLogsMenu) {
-    ocrLogsMenu.addEventListener('click', async (e) => {
-        e.preventDefault();
-
-        const mainContent = document.getElementById('mainContent');
-        const ocrLogsView = document.getElementById('ocrLogsView');
-
-        // Hide every direct section inside main content
-        Array.from(mainContent.children).forEach(child => {
-            child.style.display = 'none';
-        });
-
-        // Show only OCR Logs view
-        if (ocrLogsView) {
-            ocrLogsView.style.display = 'block';
-        }
-
-        // Update active sidebar item
-        document.querySelectorAll('.menu-item').forEach(item => {
-            item.classList.remove('active');
-        });
-
-        ocrLogsMenu.classList.add('active');
-    });
-}
 
 async function loadDuplicates() {
     try {
@@ -349,6 +325,64 @@ async function loadDuplicates() {
     }
 }
 
+async function loadOCRLogs() {
+    const tableBody = document.getElementById('ocrLogsTableBody');
+    const logsCount = document.getElementById('ocrLogsCount');
+
+    try {
+        const response = await fetch(`${API_BASE}/logs`);
+
+        if (!response.ok) {
+            throw new Error(`OCR Logs API failed: ${response.status}`);
+        }
+
+        const logs = await response.json();
+
+        console.log("OCR Logs Data:", logs);
+
+        // If no OCR logs exist
+        if (!logs || logs.length === 0) {
+
+            if (logsCount) {
+                logsCount.textContent = 'No OCR logs available yet.';
+            }
+
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 30px;">
+                            No OCR logs found yet.
+                        </td>
+                    </tr>
+                `;
+            }
+
+            return;
+        }
+
+        // Show total number of logs
+        if (logsCount) {
+            logsCount.textContent = `${logs.length} OCR log(s) found`;
+        }
+
+        // Display real logs in table
+            if (tableBody) {
+                tableBody.innerHTML = logs.map(log => `
+                    <tr>
+                        <td>${log.file || 'N/A'}</td>
+                        <td>${log.status || 'N/A'}</td>
+                        <td>${log.ocr_confidence ?? 'N/A'}</td>
+                        <td>${log.processing_result || 'N/A'}</td>
+                    </tr>
+                `).join('');
+            }
+        } catch (error) {
+            console.error("Failed to load OCR logs:", error);
+
+            if (logsCount) {
+                logsCount.textContent = 'Failed to load OCR logs.';
+            }
+        }
 
 
 async function loadProcessingQueueView() {
@@ -438,7 +472,7 @@ if (refreshProcessingQueueBtn) {
     document.getElementById('notifBtn').addEventListener('click', () => {
         showToast('3 files finished processing in the last hour', 'info', 'fa-bell');
     });
-});
+};
 
 /* ---------------- loader ---------------- */
 function initLoader(){

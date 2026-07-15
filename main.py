@@ -317,7 +317,10 @@ def process_single_file(file_path):
 
                 result = save_contact(contact)
                 print(result["message"])
-                
+
+                result["ocr_text"] = text
+                result["ocr_confidence"] = contact.get("confidence", 0)
+
                 return result
             
     elif file.lower().endswith((".txt")):
@@ -444,14 +447,16 @@ def process_folder():
 
             result = process_single_file(file_path)
             if result["message"] == "Contact saved successfully.":
-                    processed += 1
-                    contacts_saved += 1
-                    processed_files.add(file)
+                processed += 1
+                contacts_saved += 1
+                processed_files.add(file)
 
-                    processing_logs.append({
-                        "file": file,
-                        "status": "success"
-                    })
+                processing_logs.append({
+                    "file": file,
+                    "status": "success",
+                    "ocr_confidence": result.get("ocr_confidence", 0),
+                    "processing_result": result.get("ocr_text", "")
+                })
 
             elif result["message"] == "Duplicate contact found.":
                     duplicates += 1
@@ -459,7 +464,9 @@ def process_folder():
 
                     processing_logs.append({
                         "file": file,
-                        "status": "duplicate"
+                        "status": "duplicate",
+                        "ocr_confidence": result.get("ocr_confidence", 0),
+                        "processing_result": result.get("ocr_text", "")
                     })
 
             elif result["message"] == "Contact skipped because phone and email are missing.":
