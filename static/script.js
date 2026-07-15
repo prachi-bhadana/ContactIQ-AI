@@ -1358,3 +1358,4 @@ function renderContacts(contacts) {
         `;
     }).join('');
 }
+});
