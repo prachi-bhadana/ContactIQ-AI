@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initToasts();
     //animateKpis();
     await loadDashboard();
-    await loadQueue();
+    await loadProcessingQueueView();
     await loadTimeline();
     await loadHealth();
     await initCharts();
@@ -636,7 +636,7 @@ const demoQueue = [
 
 /* ---------------- processing queue ---------------- */
 
-async function loadQueue(forceSkeleton = false) {
+async function loadProcessingQueueView(forceSkeleton = false) {
     const tbody = document.getElementById("queueBody");
 
     if (!tbody) {
@@ -726,7 +726,8 @@ function renderQueue(rows) {
 
                 <td>${row.confidence}</td>
 
-                <td>
+               
+                  <td>
                     <button class="row-action" title="View">
                         <i class="fa-solid fa-eye"></i>
                     </button>
@@ -1314,6 +1315,7 @@ function renderContacts(contacts) {
     }
 
     tableBody.innerHTML = contacts.map(contact => {
+        console.log(contact);
 
         const location = [contact.city, contact.country]
             .filter(Boolean)
@@ -1346,16 +1348,18 @@ function renderContacts(contacts) {
                 </td>
 
                 <td>
-                    <button
-                        class="icon-action"
-                        onclick="viewContact(${contact.id})"
-                        title="View contact"
-                    >
+                    <button class="row-action"
+                            onclick='viewContact(${JSON.stringify(contact)})'
+                            title="View">
                         <i class="fa-solid fa-eye"></i>
                     </button>
                 </td>
-            </tr>
+                </tr>
         `;
     }).join('');
 }
 });
+
+function viewContact(contact) {
+    alert(JSON.stringify(contact, null, 2));
+}
