@@ -546,7 +546,7 @@ def get_contacts():
 @app.get("/dashboard-data")
 def dashboard_data():
     db = SessionLocal()
-
+ 
     total_contacts = db.query(Contact).count()
 
     # You can replace these with real values later
