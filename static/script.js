@@ -1,307 +1,384 @@
 /* ============================================================
    ContactIQ AI — Dashboard Logic
    Vanilla ES6. Fetches live data from the FastAPI backend and
-   falls back to demo data if an endpoint isn't reachable, so the
-   UI is always fully populated.
+   caches it so switching between views / refreshing widgets
+   doesn't re-hit the API more than necessary.
    ============================================================ */
 
-const API_BASE = ''; // same-origin FastAPI backend, e.g. '' or 'http://localhost:8000'
+const API_BASE = ''; // same-origin FastAPI backend
 
 const state = {
     theme: localStorage.getItem('contactiq-theme') || 'dark',
     sidebarCollapsed: false,
 };
 
+// Cache of the last successful response per endpoint, so the dashboard
+// preview widgets and the full pages (Processing Queue / OCR Logs) can
+// share one fetch instead of issuing duplicate requests.
+const cache = {
+    queue: null,
+    logs: null,
+    duplicates: null,
+    analytics: null,
+    contacts: null,
+};
 
+let trendChart = null;
+let analyticsTrendChart = null;
+let analyticsDupChart = null;
+let analyticsOcrChart = null;
+let analyticsConfChart = null;
 
+/* ============================================================
+   Fetch helper
+   ============================================================ */
+async function apiGet(path) {
+    const response = await fetch(`${API_BASE}${path}`);
+    if (!response.ok) {
+        throw new Error(`${path} failed: ${response.status}`);
+    }
+    return response.json();
+}
 
-async function loadDashboard() {
+/* ============================================================
+   Loaders — one per data source. Each updates `cache` so other
+   widgets can reuse the result without a fresh network call.
+   ============================================================ */
+async function fetchQueue(force = false) {
+    if (cache.queue && !force) return cache.queue;
+    cache.queue = await apiGet('/processing-queue');
+    return cache.queue;
+}
+
+async function fetchLogs(force = false) {
+    if (cache.logs && !force) return cache.logs;
+    cache.logs = await apiGet('/logs');
+    return cache.logs;
+}
+
+async function fetchDuplicates(force = false) {
+    if (cache.duplicates && !force) return cache.duplicates;
+    cache.duplicates = await apiGet('/duplicates');
+    return cache.duplicates;
+}
+
+async function fetchAnalytics(force = false) {
+    if (cache.analytics && !force) return cache.analytics;
+    cache.analytics = await apiGet('/analytics');
+    return cache.analytics;
+}
+
+async function fetchContacts(force = false) {
+    if (cache.contacts && !force) return cache.contacts;
+    cache.contacts = await apiGet('/contacts');
+    return cache.contacts;
+}
+
+/* ============================================================
+   Dashboard — KPI cards
+   ============================================================ */
+async function loadDashboardKpis() {
     try {
-        const response = await fetch("/dashboard-data");
-        const data = await response.json();
-        console.log(data)
+        const data = await apiGet('/dashboard-data');
 
-        document.getElementById("totalFiles").textContent = data.total_files;
-        document.getElementById("contacts").textContent = data.contacts;
-        document.getElementById("newContacts").textContent = data.new_contacts;
-        document.getElementById("duplicates").textContent = data.duplicates;
-        document.getElementById("failed").textContent = data.failed;
-        document.getElementById("accuracy").textContent = data.accuracy + "%";
-        document.getElementById("ocrConfidence").textContent = data.ocr_confidence + "%";
-        document.getElementById("aiConfidence").textContent = data.ai_confidence + "%";
-
-        document.getElementById("lastSync").textContent =
-            "Last synced: " + new Date().toLocaleTimeString();
-
+        setText('totalFiles', data.total_files);
+        setText('contacts', data.contacts);
+        setText('newContacts', data.new_contacts);
+        setText('duplicates', data.duplicates);
+        setText('failed', data.failed);
+        setText('accuracy', `${data.accuracy}%`);
+        setText('ocrConfidence', `${data.ocr_confidence}%`);
+        setText('aiConfidence', `${data.ai_confidence}%`);
     } catch (error) {
-        console.error("Dashboard loading failed:", error);
+        console.error('Dashboard KPI load failed:', error);
+    } finally {
+        setText('lastSync', `Last synced: ${new Date().toLocaleTimeString()}`);
     }
 }
 
+/* ============================================================
+   Dashboard — Processing Queue preview widget
+   ============================================================ */
+async function loadQueuePreview() {
+    const tbody = document.getElementById('queuePreviewBody');
+    if (!tbody) return;
 
-
-/* ---------------- boot ---------------- */
-document.addEventListener('DOMContentLoaded', async () => {
-    applyTheme(state.theme);
-    initLoader();
-    initSidebar();
-    initTopbar();
-    initRippleButtons();
-    initRevealOnScroll();
-    initToasts();
-    //animateKpis();
-    await loadDashboard();
-    await loadProcessingQueueView();
-    await loadTimeline();
-    await loadHealth();
-    await initCharts();
-    
-
-    const contactsMenu = document.getElementById('contactsMenu');
-
-        if (contactsMenu) {
-            contactsMenu.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                // Update active sidebar item
-                document.querySelectorAll('.menu-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-
-                contactsMenu.classList.add('active');
-
-                // Get main content
-                const mainContent = document.getElementById('mainContent');
-
-                // Hide all dashboard sections
-                Array.from(mainContent.children).forEach(child => {
-                    child.style.display = 'none';
-                });
-
-                // Show only Contacts View
-                const contactsView = document.getElementById('contactsView');
-
-                if (contactsView) {
-                    contactsView.style.display = 'block';
-                }
-
-                // Load contacts from backend
-                await loadContacts();
-            });
-        }
-
-
-    const dashboardMenu = document.getElementById('dashboardMenu');
-
-        if (dashboardMenu) {
-            dashboardMenu.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                const mainContent = document.getElementById('mainContent');
-
-                // These are separate sidebar views, not part of the main dashboard
-                const separateViews = [
-                    'contactsView',
-                    'processingQueueView',
-                    'analyticsView',
-                    'duplicateReviewView',
-                    'ocrLogsView'
-                ];
-
-                // Hide separate views and show normal dashboard sections
-                Array.from(mainContent.children).forEach(child => {
-                    if (separateViews.includes(child.id)) {
-                        child.style.display = 'none';
-                    } else {
-                        child.style.display = '';
-                    }
-                });
-
-                // Update active sidebar item
-                document.querySelectorAll('.menu-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-
-                dashboardMenu.classList.add('active');
-
-                // Resize existing charts after making dashboard visible again
-                setTimeout(() => {
-                    if (trendChartInstance) trendChartInstance.resize();
-                    if (dupChartInstance) dupChartInstance.resize();
-                    if (ocrChartInstance) ocrChartInstance.resize();
-                    if (confChartInstance) confChartInstance.resize();
-                }, 100);
-            });
-        }
-
-    const processingQueueMenu = document.getElementById('processingQueueMenu');
-
-        if (processingQueueMenu) {
-            processingQueueMenu.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                const mainContent = document.getElementById('mainContent');
-                const processingQueueView = document.getElementById('processingQueueView');
-
-                // Hide every dashboard/view section
-                Array.from(mainContent.children).forEach(child => {
-                    child.style.display = 'none';
-                });
-
-                // Show Processing Queue view
-                if (processingQueueView) {
-                    processingQueueView.style.display = 'block';
-                }
-
-                // Update active sidebar item
-                document.querySelectorAll('.menu-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-
-                processingQueueMenu.classList.add('active');
-
-                // Load real processing queue data
-                await loadProcessingQueueView();
-            });
-        }
-
-
-        const analyticsMenu = document.getElementById('analyticsMenu');
-
-            if (analyticsMenu) {
-                analyticsMenu.addEventListener('click', async (e) => {
-                    e.preventDefault();
-
-                    const mainContent = document.getElementById('mainContent');
-                    const analyticsView = document.getElementById('analyticsView');
-
-                    // Hide all current dashboard sections/views
-                    Array.from(mainContent.children).forEach(child => {
-                        child.style.display = 'none';
-                    });
-
-                    // Show only Analytics View
-                    if (analyticsView) {
-                        analyticsView.style.display = 'block';
-                    }
-
-                    // Update active sidebar item
-                    document.querySelectorAll('.menu-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-
-                    analyticsMenu.classList.add('active');
-
-                    // Wait briefly so the visible canvas gets its correct dimensions
-                    await new Promise(resolve => setTimeout(resolve, 50));
-
-                    // Load real analytics data and render charts
-                    await loadAnalyticsView();
-                });
-            }
-
-            const refreshAnalyticsBtn = document.getElementById('refreshAnalyticsBtn');
-
-                if (refreshAnalyticsBtn) {
-                    refreshAnalyticsBtn.addEventListener('click', async () => {
-                        await loadAnalyticsView();
-
-                        showToast(
-                            'Analytics refreshed successfully',
-                            'success',
-                            'fa-circle-check'
-                        );
-                    });
-                }
-
-            const duplicateReviewMenu = document.getElementById('duplicateReviewMenu');
-
-                if (duplicateReviewMenu) {
-                    duplicateReviewMenu.addEventListener('click', async (e) => {
-                        e.preventDefault();
-
-                        const mainContent = document.getElementById('mainContent');
-                        const duplicateReviewView = document.getElementById('duplicateReviewView');
-
-                        // Hide all direct children of mainContent
-                        Array.from(mainContent.children).forEach(child => {
-                            child.style.display = 'none';
-                        });
-
-                        // Show only Duplicate Review view
-                        duplicateReviewView.style.display = 'block';
-
-                        // Update active sidebar item
-                        document.querySelectorAll('.menu-item').forEach(item => {
-                            item.classList.remove('active');
-                        });
-
-                        duplicateReviewMenu.classList.add('active');
-
-                        // Later, we'll load real duplicate data here
-                        await loadDuplicates();
-                            });
-                        }
-
-            const ocrLogsMenu = document.getElementById('ocrLogsMenu');
-
-                if (ocrLogsMenu) {
-                    ocrLogsMenu.addEventListener('click', async (e) => {
-                        e.preventDefault();
-
-                        const mainContent = document.getElementById('mainContent');
-                        const ocrLogsView = document.getElementById('ocrLogsView');
-
-                        // Hide every direct section inside main content
-                        Array.from(mainContent.children).forEach(child => {
-                            child.style.display = 'none';
-                        });
-
-                        // Show only OCR Logs view
-                        if (ocrLogsView) {
-                            ocrLogsView.style.display = 'block';
-                        }
-
-                        // Update active sidebar item
-                        document.querySelectorAll('.menu-item').forEach(item => {
-                            item.classList.remove('active');
-                        });
-
-                        ocrLogsMenu.classList.add('active');
-
-                         await loadOCRLogs();
-                    });
-                }
-
-                            
-
-            
-
-
-async function loadDuplicates() {
     try {
-        const response = await fetch(`${API_BASE}/duplicates`);
+        const data = await fetchQueue();
+        const rows = data.slice(0, 5);
 
-        if (!response.ok) {
-            throw new Error(`Duplicates API failed: ${response.status}`);
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="3" class="empty-cell">No files processed yet.</td></tr>`;
+            return;
         }
 
-        const data = await response.json();
+        tbody.innerHTML = rows.map(item => `
+            <tr>
+                <td>${escapeHtml(item.file || 'Unknown')}</td>
+                <td><span class="status ${(item.status || '').toLowerCase()}">${escapeHtml(item.status || 'Unknown')}</span></td>
+                <td>${escapeHtml(item.confidence ?? '—')}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Queue preview load failed:', error);
+        tbody.innerHTML = `<tr><td colspan="3" class="empty-cell">Failed to load queue.</td></tr>`;
+    }
+}
 
-        console.log("Duplicate Data:", data);
+/* ============================================================
+   Dashboard — OCR Logs preview widget
+   ============================================================ */
+async function loadOcrPreview() {
+    const tbody = document.getElementById('ocrPreviewBody');
+    if (!tbody) return;
 
-        const summary = document.getElementById('duplicateSummary');
-        const container = document.getElementById('duplicateList');
+    try {
+        const logs = await fetchLogs();
+        const rows = logs.slice(0, 5);
+
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="3" class="empty-cell">No OCR activity yet.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = rows.map(log => `
+            <tr>
+                <td>${escapeHtml(log.file || 'N/A')}</td>
+                <td><span class="status ${(log.status || '').toLowerCase()}">${escapeHtml(log.status || 'N/A')}</span></td>
+                <td>${escapeHtml(formatConfidence(log.ocr_confidence))}</td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('OCR preview load failed:', error);
+        tbody.innerHTML = `<tr><td colspan="3" class="empty-cell">Failed to load OCR logs.</td></tr>`;
+    }
+}
+
+/* ============================================================
+   Dashboard — Recent Activity timeline widget
+   ============================================================ */
+async function loadRecentActivity() {
+    const list = document.getElementById('recentActivityList');
+    if (!list) return;
+
+    try {
+        const logs = await fetchLogs();
+        const rows = logs.slice(0, 6);
+
+        if (!rows.length) {
+            list.innerHTML = `<li class="empty-cell">No recent activity.</li>`;
+            return;
+        }
+
+        const iconFor = (status) => ({
+            success: 'fa-circle-check',
+            duplicate: 'fa-clone',
+            failed: 'fa-circle-xmark',
+            skipped: 'fa-forward',
+        }[status] || 'fa-circle-info');
+
+        list.innerHTML = rows.map(log => `
+            <li class="activity-item ${escapeHtml(log.status || '')}">
+                <i class="fa-solid ${iconFor(log.status)}"></i>
+                <span class="activity-file">${escapeHtml(log.file || 'Unknown file')}</span>
+                <span class="activity-status">${escapeHtml(log.status || 'unknown')}</span>
+            </li>
+        `).join('');
+    } catch (error) {
+        console.error('Recent activity load failed:', error);
+        list.innerHTML = `<li class="empty-cell">Failed to load activity.</li>`;
+    }
+}
+
+/* ============================================================
+   Dashboard — trend graph widget
+   ============================================================ */
+async function loadDashboardTrendChart() {
+    const canvas = document.getElementById('trendChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    try {
+        const data = await fetchAnalytics();
+
+        if (trendChart) {
+            trendChart.destroy();
+        }
+
+        trendChart = new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['-6d', '-5d', '-4d', '-3d', '-2d', '-1d', 'Today'],
+                datasets: [{
+                    label: 'Files processed',
+                    data: data.files_processed,
+                    borderColor: '#6d8dff',
+                    backgroundColor: 'rgba(109,141,255,0.15)',
+                    tension: 0.35,
+                    fill: true,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } },
+            },
+        });
+    } catch (error) {
+        console.error('Dashboard trend chart failed:', error);
+    }
+}
+
+/* ============================================================
+   Contacts view
+   ============================================================ */
+function renderContactsTable(contacts) {
+    const tbody = document.getElementById('contactsTableBody');
+    const countLabel = document.getElementById('contactsCount');
+    if (!tbody) return;
+
+    if (countLabel) {
+        countLabel.textContent = `${contacts.length} contact(s) found`;
+    }
+
+    if (!contacts.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">No contacts extracted yet.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = contacts.map(c => `
+        <tr>
+            <td>${escapeHtml(c.full_name || '—')}</td>
+            <td>${escapeHtml(c.email || '—')}</td>
+            <td>${escapeHtml(c.phone || '—')}</td>
+            <td>${escapeHtml(c.organization || '—')}</td>
+            <td>${escapeHtml(c.designation || '—')}</td>
+            <td>${escapeHtml([c.city, c.country].filter(Boolean).join(', ') || '—')}</td>
+            <td>${escapeHtml(formatConfidence(c.confidence))}</td>
+            <td><button class="btn-small" data-contact-id="${c.id}"><i class="fa-solid fa-eye"></i> View</button></td>
+        </tr>
+    `).join('');
+}
+
+async function loadContacts(force = false) {
+    const tbody = document.getElementById('contactsTableBody');
+    const countLabel = document.getElementById('contactsCount');
+
+    try {
+        const contacts = await fetchContacts(force);
+        renderContactsTable(contacts);
+    } catch (error) {
+        console.error('Failed to load contacts:', error);
+        if (countLabel) countLabel.textContent = 'Failed to load contacts';
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="empty-cell">Failed to load contacts.</td></tr>`;
+    }
+}
+
+function filterContactsTable() {
+    const input = document.getElementById('contactsSearchInput');
+    if (!input || !cache.contacts) return;
+
+    const term = input.value.trim().toLowerCase();
+    if (!term) {
+        renderContactsTable(cache.contacts);
+        return;
+    }
+
+    const filtered = cache.contacts.filter(c =>
+        [c.full_name, c.email, c.phone, c.organization, c.city]
+            .filter(Boolean)
+            .some(field => field.toLowerCase().includes(term))
+    );
+
+    renderContactsTable(filtered);
+}
+
+/* ============================================================
+   Processing Queue (full page)
+   ============================================================ */
+async function loadProcessingQueueView(force = false) {
+    const tbody = document.getElementById('processingQueueViewBody');
+    if (!tbody) return;
+
+    try {
+        const data = await fetchQueue(force);
+
+        if (!data.length) {
+            tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">No processing activity found.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = data.map(item => `
+            <tr>
+                <td>${escapeHtml(item.file || 'Unknown')}</td>
+                <td><span class="status ${(item.status || '').toLowerCase()}">${escapeHtml(item.status || 'Unknown')}</span></td>
+                <td>${escapeHtml(item.time || '—')}</td>
+                <td>${item.contacts ?? 0}</td>
+                <td>${escapeHtml(item.ocr_accuracy ?? '—')}</td>
+                <td>${escapeHtml(item.confidence ?? '—')}</td>
+                <td><button class="btn-small"><i class="fa-solid fa-eye"></i> View</button></td>
+            </tr>
+        `).join('');
+    } catch (error) {
+        console.error('Failed to load Processing Queue View:', error);
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">Failed to load processing queue.</td></tr>`;
+    }
+}
+
+/* ============================================================
+   OCR Logs (full page)
+   ============================================================ */
+async function loadOCRLogs(force = false) {
+    const tableBody = document.getElementById('ocrLogsTableBody');
+    const summary = document.getElementById('ocrLogsSummary');
+
+    try {
+        const logs = await fetchLogs(force);
+
+        if (!logs.length) {
+            if (summary) summary.textContent = 'No OCR logs available yet.';
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="4" class="empty-cell">No OCR logs found yet.</td></tr>`;
+            }
+            return;
+        }
+
+        if (summary) summary.textContent = `${logs.length} OCR log(s) found`;
+
+        if (tableBody) {
+            tableBody.innerHTML = logs.map(log => `
+                <tr>
+                    <td>${escapeHtml(log.file || 'N/A')}</td>
+                    <td><span class="status ${(log.status || '').toLowerCase()}">${escapeHtml(log.status || 'N/A')}</span></td>
+                    <td>${escapeHtml(formatConfidence(log.ocr_confidence))}</td>
+                    <td>${escapeHtml(truncate(log.processing_result, 120))}</td>
+                </tr>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Failed to load OCR logs:', error);
+        if (summary) summary.textContent = 'Failed to load OCR logs.';
+    }
+}
+
+/* ============================================================
+   Duplicate Review
+   ============================================================ */
+async function loadDuplicates(force = false) {
+    const summary = document.getElementById('duplicateSummary');
+    const container = document.getElementById('duplicateList');
+    if (!container) return;
+
+    try {
+        const data = await fetchDuplicates(force);
 
         if (summary) {
-            summary.textContent = `${data.duplicate_groups || 0} duplicate groups detected`;
+            summary.textContent = `${data.duplicate_groups || 0} duplicate group(s) detected`;
         }
-
-        if (!container) return;
 
         container.innerHTML = '';
 
-        if (!data.duplicates || data.duplicates.length === 0) {
+        if (!data.duplicates || !data.duplicates.length) {
             container.innerHTML = `
                 <div class="empty-state">
                     <i class="fa-solid fa-circle-check"></i>
@@ -312,258 +389,414 @@ async function loadDuplicates() {
             return;
         }
 
-        // We'll render actual duplicate cards here in the next step.
-
+        container.innerHTML = data.duplicates.map(group => `
+            <div class="panel duplicate-group">
+                <div class="panel-head">
+                    <div>
+                        <h3>Group #${group.group_id}</h3>
+                        <p>${escapeHtml(group.match_reason)}</p>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="queue-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th><th>Email</th><th>Phone</th><th>Organization</th><th>City</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${group.contacts.map(c => `
+                                <tr>
+                                    <td>${escapeHtml(c.full_name || '—')}</td>
+                                    <td>${escapeHtml(c.email || '—')}</td>
+                                    <td>${escapeHtml(c.phone || '—')}</td>
+                                    <td>${escapeHtml(c.organization || '—')}</td>
+                                    <td>${escapeHtml(c.city || '—')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `).join('');
     } catch (error) {
-        console.error("Failed to load duplicates:", error);
-
-        const summary = document.getElementById('duplicateSummary');
-
-        if (summary) {
-            summary.textContent = 'Failed to load duplicate information';
-        }
+        console.error('Failed to load duplicates:', error);
+        if (summary) summary.textContent = 'Failed to load duplicate information';
+        container.innerHTML = `<div class="panel"><p>Failed to load duplicate information.</p></div>`;
     }
 }
 
-async function loadOCRLogs() {
-    const tableBody = document.getElementById('ocrLogsTableBody');
-    const logsCount = document.getElementById('ocrLogsCount');
-
+/* ============================================================
+   Analytics (full page charts)
+   ============================================================ */
+async function loadAnalyticsView(force = false) {
     try {
-        const response = await fetch(`${API_BASE}/logs`);
-
-        if (!response.ok) {
-            throw new Error(`OCR Logs API failed: ${response.status}`);
-        }
-
-        const logs = await response.json();
-
-        console.log("OCR Logs Data:", logs);
-
-        // If no OCR logs exist
-        if (!logs || logs.length === 0) {
-
-            if (logsCount) {
-                logsCount.textContent = 'No OCR logs available yet.';
-            }
-
-            if (tableBody) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 30px;">
-                            No OCR logs found yet.
-                        </td>
-                    </tr>
-                `;
-            }
-
-            return;
-        }
-
-        // Show total number of logs
-        if (logsCount) {
-            logsCount.textContent = `${logs.length} OCR log(s) found`;
-        }
-
-        // Display real logs in table
-            if (tableBody) {
-                tableBody.innerHTML = logs.map(log => `
-                    <tr>
-                        <td>${log.file || 'N/A'}</td>
-                        <td>${log.status || 'N/A'}</td>
-                        <td>${log.ocr_confidence ?? 'N/A'}</td>
-                        <td>${log.processing_result || 'N/A'}</td>
-                    </tr>
-                `).join('');
-            }
-        } catch (error) {
-            console.error("Failed to load OCR logs:", error);
-
-            if (logsCount) {
-                logsCount.textContent = 'Failed to load OCR logs.';
-            }
-        }
-
-
-async function loadProcessingQueueView() {
-    try {
-        const response = await fetch(`${API_BASE}/processing-queue`);
-
-        if (!response.ok) {
-            throw new Error(`Processing Queue API failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        console.log("Processing Queue View Data:", data);
-
-        const tbody = document.getElementById('processingQueueViewBody');
-
-        if (!tbody) return;
-
-        tbody.innerHTML = '';
-
-        if (!data || data.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" style="text-align: center;">
-                        No processing activity found.
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        data.forEach(item => {
-            const row = document.createElement('tr');
-
-            row.innerHTML = `
-                <td>${item.file || 'Unknown'}</td>
-
-                <td>
-                    <span class="status ${item.status || ''}">
-                        ${item.status || 'Unknown'}
-                    </span>
-                </td>
-
-                <td>${item.time || '—'}</td>
-
-                <td>${item.contacts ?? 0}</td>
-
-                <td>${item.ocr_accuracy ?? '—'}</td>
-
-                <td>${item.confidence ?? '—'}</td>
-
-                <td>
-                    <button class="btn-small">
-                        <i class="fa-solid fa-eye"></i>
-                        View
-                    </button>
-                </td>
-            `;
-
-            tbody.appendChild(row);
-        });
-
+        const data = await fetchAnalytics(force);
+        renderAnalyticsCharts(data);
     } catch (error) {
-        console.error("Failed to load Processing Queue View:", error);
+        console.error('Failed to load analytics:', error);
     }
 }
 
-const refreshProcessingQueueBtn =
-    document.getElementById('refreshProcessingQueueBtn');
+function renderAnalyticsCharts(data) {
+    if (typeof Chart === 'undefined') return;
 
-if (refreshProcessingQueueBtn) {
-    refreshProcessingQueueBtn.addEventListener('click', async () => {
-        await loadProcessingQueueView();
+    const labels = ['-6d', '-5d', '-4d', '-3d', '-2d', '-1d', 'Today'];
+
+    analyticsTrendChart = recreateChart(analyticsTrendChart, 'analyticsTrendChart', {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Files processed',
+                data: data.files_processed,
+                borderColor: '#6d8dff',
+                backgroundColor: 'rgba(109,141,255,0.15)',
+                tension: 0.35,
+                fill: true,
+            }],
+        },
+        options: baseChartOptions(),
+    });
+
+    analyticsDupChart = recreateChart(analyticsDupChart, 'analyticsDupChart', {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Duplicates found',
+                data: data.duplicates_found,
+                backgroundColor: '#ff8a65',
+            }],
+        },
+        options: baseChartOptions(),
+    });
+
+    analyticsOcrChart = recreateChart(analyticsOcrChart, 'analyticsOcrChart', {
+        type: 'doughnut',
+        data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{
+                data: data.ocr_distribution,
+                backgroundColor: ['#4ade80', '#facc15', '#f87171'],
+            }],
+        },
+        options: { responsive: true, maintainAspectRatio: false },
+    });
+
+    analyticsConfChart = recreateChart(analyticsConfChart, 'analyticsConfChart', {
+        type: 'line',
+        data: {
+            labels: ['-5', '-4', '-3', '-2', '-1', 'Now'],
+            datasets: [{
+                label: 'AI confidence %',
+                data: data.ai_confidence,
+                borderColor: '#a78bfa',
+                backgroundColor: 'rgba(167,139,250,0.15)',
+                tension: 0.35,
+                fill: true,
+            }],
+        },
+        options: baseChartOptions(),
     });
 }
 
+function baseChartOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } },
+    };
+}
 
+// Destroys any existing Chart.js instance bound to `canvasId` before
+// creating a new one — this is what prevents the "Canvas is already in
+// use" / "Cannot access before initialization" errors that show up when
+// a chart is re-rendered without being torn down first.
+function recreateChart(existingInstance, canvasId, config) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
 
-    updateGreetingAndDate();
-    setInterval(updateGreetingAndDate, 60000);
+    if (existingInstance) {
+        existingInstance.destroy();
+    }
 
-    document.getElementById('processBtn').addEventListener('click', runProcessing);
-    document.getElementById('docsBtn').addEventListener('click', () => {
-        window.open(`${API_BASE}/docs`, '_blank');
-    });
-   
-    document.getElementById('notifBtn').addEventListener('click', () => {
-        showToast('3 files finished processing in the last hour', 'info', 'fa-bell');
-    });
+    return new Chart(canvas.getContext('2d'), config);
+}
+
+/* ============================================================
+   View switching (single source of truth — no per-menu-item
+   duplicated click handlers)
+   ============================================================ */
+const VIEW_CONFIG = {
+    dashboardMenu: { view: null, loader: loadDashboardAll },
+    contactsMenu: { view: 'contactsView', loader: () => loadContacts(true) },
+    processingQueueMenu: { view: 'processingQueueView', loader: () => loadProcessingQueueView(true) },
+    analyticsMenu: { view: 'analyticsView', loader: () => loadAnalyticsView(true) },
+    duplicateReviewMenu: { view: 'duplicateReviewView', loader: () => loadDuplicates(true) },
+    ocrLogsMenu: { view: 'ocrLogsView', loader: () => loadOCRLogs(true) },
 };
 
-/* ---------------- loader ---------------- */
-function initLoader(){
-    const overlay = document.getElementById('loaderOverlay');
-    window.addEventListener('load', () => {
-        setTimeout(() => overlay.classList.add('hidden'), 500);
-    });
-    // safety fallback in case 'load' already fired
-    setTimeout(() => overlay.classList.add('hidden'), 2500);
+const STANDALONE_VIEW_IDS = [
+    'contactsView',
+    'processingQueueView',
+    'analyticsView',
+    'duplicateReviewView',
+    'ocrLogsView',
+];
+
+async function switchView(menuId) {
+    const config = VIEW_CONFIG[menuId];
+    if (!config) return;
+
+    const mainContent = document.getElementById('mainContent');
+    const menuEl = document.getElementById(menuId);
+    if (!mainContent) return;
+
+    // Toggle sidebar active state
+    document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+    if (menuEl) menuEl.classList.add('active');
+
+    if (config.view === null) {
+        // Dashboard: show default sections, hide the standalone views
+        Array.from(mainContent.children).forEach(child => {
+            child.style.display = STANDALONE_VIEW_IDS.includes(child.id) ? 'none' : '';
+        });
+    } else {
+        Array.from(mainContent.children).forEach(child => {
+            child.style.display = child.id === config.view ? 'block' : 'none';
+        });
+    }
+
+    sidebarCloseOnMobile();
+
+    // Give the browser a frame to lay out the now-visible canvas before
+    // Chart.js measures it (fixes zero-height charts on first render).
+    await new Promise(resolve => setTimeout(resolve, 30));
+
+    if (config.loader) {
+        await config.loader();
+    }
+
+    if (config.view === null) {
+        resizeDashboardCharts();
+    }
 }
 
-/* ---------------- theme ---------------- */
-function applyTheme(theme){
+function resizeDashboardCharts() {
+    [trendChart, analyticsTrendChart, analyticsDupChart, analyticsOcrChart, analyticsConfChart]
+        .filter(Boolean)
+        .forEach(chart => chart.resize());
+}
+
+async function loadDashboardAll() {
+    await Promise.all([
+        loadDashboardKpis(),
+        loadQueuePreview(),
+        loadOcrPreview(),
+        loadRecentActivity(),
+        loadDashboardTrendChart(),
+    ]);
+}
+
+/* ============================================================
+   Processing trigger
+   ============================================================ */
+async function runProcessing() {
+    const btn = document.getElementById('processBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('is-loading');
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/process-folder`, { method: 'POST' });
+        if (!response.ok) throw new Error(`process-folder failed: ${response.status}`);
+        const data = await response.json();
+
+        // Invalidate caches touched by this run so the next render is fresh.
+        cache.queue = null;
+        cache.logs = null;
+        cache.contacts = null;
+        cache.analytics = null;
+        cache.duplicates = null;
+
+        await loadDashboardAll();
+
+        showToast(
+            `Processed ${data.summary.total_files} file(s) — ${data.summary.contacts_saved} contact(s) saved`,
+            'success',
+            'fa-circle-check'
+        );
+    } catch (error) {
+        console.error('Processing run failed:', error);
+        showToast('Processing run failed. Check server logs.', 'error', 'fa-triangle-exclamation');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('is-loading');
+        }
+    }
+}
+
+/* ============================================================
+   Small utilities
+   ============================================================ */
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function formatConfidence(value) {
+    if (value === null || value === undefined || value === '') return '—';
+    return `${value}%`;
+}
+
+function truncate(text, max) {
+    if (!text) return 'N/A';
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+}
+
+function escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function sidebarCloseOnMobile() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+}
+
+/* ============================================================
+   Theme / topbar / sidebar / greeting
+   ============================================================ */
+function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     const icon = document.querySelector('#themeToggle i');
-    if (icon){
-        icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-    }
+    if (icon) icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
     state.theme = theme;
     localStorage.setItem('contactiq-theme', theme);
 }
 
-function initTopbar(){
-    document.getElementById('themeToggle').addEventListener('click', () => {
+function initTopbar() {
+    document.getElementById('themeToggle')?.addEventListener('click', () => {
         applyTheme(state.theme === 'dark' ? 'light' : 'dark');
     });
 
-    document.getElementById('mobileToggle').addEventListener('click', () => {
-        document.getElementById('sidebar').classList.toggle('mobile-open');
+    document.getElementById('mobileToggle')?.addEventListener('click', () => {
+        document.getElementById('sidebar')?.classList.toggle('mobile-open');
     });
+
+    document.getElementById('notifBtn')?.addEventListener('click', () => {
+        showToast('3 files finished processing in the last hour', 'info', 'fa-bell');
+    });
+
+    document.getElementById('docsBtn')?.addEventListener('click', () => {
+        window.open(`${API_BASE}/docs`, '_blank');
+    });
+
+    document.getElementById('processBtn')?.addEventListener('click', runProcessing);
+
+    document.getElementById('contactsSearchInput')?.addEventListener('input', filterContactsTable);
 }
 
-function updateGreetingAndDate(){
+function updateGreetingAndDate() {
     const now = new Date();
     const hour = now.getHours();
     let greeting = 'Good evening';
     if (hour < 12) greeting = 'Good morning';
     else if (hour < 18) greeting = 'Good afternoon';
 
-    document.getElementById('greeting').textContent = `${greeting}, Admin`;
-    document.getElementById('dateDisplay').textContent = now.toLocaleDateString(undefined, {
-        weekday: 'long', month: 'long', day: 'numeric'
-    });
-
-    const lastSync = document.getElementById('lastSync');
-    if (lastSync) lastSync.textContent = `Last synced ${now.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'})}`;
+    setText('greeting', `${greeting}, Admin`);
+    setText('dateDisplay', now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }));
 }
 
-/* ---------------- sidebar ---------------- */
-function initSidebar(){
+function initSidebar() {
     const sidebar = document.getElementById('sidebar');
-    const btn = document.getElementById('collapseBtn');
+    const collapseBtn = document.getElementById('collapseBtn');
 
-    btn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        state.sidebarCollapsed = sidebar.classList.contains('collapsed');
+    collapseBtn?.addEventListener('click', () => {
+        sidebar?.classList.toggle('collapsed');
+        state.sidebarCollapsed = sidebar?.classList.contains('collapsed') ?? false;
     });
 
+    // Single delegated listener for every sidebar menu item — replaces
+    // the six near-identical click handlers that used to live here.
     document.querySelectorAll('.menu-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
-            document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            sidebar.classList.remove('mobile-open');
+            switchView(item.id);
         });
     });
 }
 
-/* ---------------- ripple buttons ---------------- */
-function initRippleButtons(){
+/* ============================================================
+   Refresh buttons (per view)
+   ============================================================ */
+function initRefreshButtons() {
+    document.getElementById('refreshContactsBtn')?.addEventListener('click', async () => {
+        await loadContacts(true);
+        showToast('Contacts refreshed', 'success', 'fa-circle-check');
+    });
+
+    document.getElementById('refreshProcessingQueueBtn')?.addEventListener('click', async () => {
+        await loadProcessingQueueView(true);
+        showToast('Processing queue refreshed', 'success', 'fa-circle-check');
+    });
+
+    document.getElementById('refreshAnalyticsBtn')?.addEventListener('click', async () => {
+        await loadAnalyticsView(true);
+        showToast('Analytics refreshed successfully', 'success', 'fa-circle-check');
+    });
+
+    document.getElementById('refreshDuplicatesBtn')?.addEventListener('click', async () => {
+        await loadDuplicates(true);
+        showToast('Duplicate review refreshed', 'success', 'fa-circle-check');
+    });
+
+    document.getElementById('refreshOcrLogsBtn')?.addEventListener('click', async () => {
+        await loadOCRLogs(true);
+        showToast('OCR logs refreshed', 'success', 'fa-circle-check');
+    });
+}
+
+/* ============================================================
+   Loader overlay / ripple buttons / scroll reveal / toasts
+   ============================================================ */
+function initLoader() {
+    const overlay = document.getElementById('loaderOverlay');
+    if (!overlay) return;
+    window.addEventListener('load', () => setTimeout(() => overlay.classList.add('hidden'), 500));
+    setTimeout(() => overlay.classList.add('hidden'), 2500); // safety fallback
+}
+
+function initRippleButtons() {
     document.querySelectorAll('.btn, .btn-small, .icon-btn').forEach(btn => {
-        btn.addEventListener('click', function(e){
+        btn.addEventListener('click', function (e) {
             const rect = this.getBoundingClientRect();
-            const ripple = document.createElement('span');
             const size = Math.max(rect.width, rect.height);
+            const ripple = document.createElement('span');
             ripple.className = 'ripple-el';
             ripple.style.width = ripple.style.height = `${size}px`;
-            ripple.style.left = `${e.clientX - rect.left - size/2}px`;
-            ripple.style.top = `${e.clientY - rect.top - size/2}px`;
+            ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+            ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
             this.appendChild(ripple);
             setTimeout(() => ripple.remove(), 650);
         });
     });
 }
 
-/* ---------------- scroll reveal ---------------- */
-function initRevealOnScroll(){
+function initRevealOnScroll() {
     const els = document.querySelectorAll('.reveal');
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-            if (entry.isIntersecting){
+            if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
                 observer.unobserve(entry.target);
             }
@@ -572,794 +805,42 @@ function initRevealOnScroll(){
     els.forEach(el => observer.observe(el));
 }
 
-/* ---------------- toasts ---------------- */
-function initToasts(){
+function showToast(message, type = 'info', icon = 'fa-circle-info') {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${escapeHtml(message)}</span>`;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('visible'));
+
+    setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function initToasts() {
     setTimeout(() => showToast('Connected to ContactIQ pipeline', 'success', 'fa-circle-check'), 1200);
 }
 
-function showToast(message, type = 'info', icon = 'fa-circle-info'){
-    const container = document.getElementById('toastContainer');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
-    container.appendChild(toast);
-
-    setTimeout(() => {
-        toast.classList.add('leaving');
-        setTimeout(() => toast.remove(), 350);
-    }, 4200);
-}
-
-/* ---------------- helper: safe fetch with fallback ---------------- */
-async function safeFetch(path, fallback){
-    try{
-        const res = await fetch(`${API_BASE}${path}`, { headers: { 'Accept': 'application/json' } });
-        if (!res.ok) throw new Error(`${path} responded ${res.status}`);
-        return await res.json();
-    }catch(err){
-        console.warn(`[ContactIQ] Using demo data for ${path} —`, err.message);
-        return fallback;
-    }
-}
-
-/* ---------------- KPI counters ---------------- */
-function animateKpis(){
-    document.querySelectorAll('.kpi-card').forEach(card => {
-        const target = parseFloat(card.dataset.target || '0');
-        const suffix = card.dataset.suffix || '';
-        const countEl = card.querySelector('.count');
-        const ring = card.querySelector('.kpi-ring');
-        const ringPercent = suffix === '%' ? target : Math.min(100, (target / 20));
-
-        const duration = 1400;
-        const start = performance.now();
-
-        function tick(now){
-            const progress = Math.min((now - start) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            countEl.textContent = Math.round(eased * target) + suffix;
-            ring.style.setProperty('--p', (eased * ringPercent).toFixed(1));
-            if (progress < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-    });
-}
-
-/* ---------------- processing queue ---------------- */
-const demoQueue = [
-    { file: 'resume_bulk_042.docx', status: 'completed', time: '2.4s', contacts: 1, ocr: 98, conf: 96 },
-    { file: 'visiting_card_017.jpg', status: 'running', time: '1.2s', contacts: 0, ocr: null, conf: null },
-    { file: 'contacts_master.xlsx', status: 'completed', time: '0.8s', contacts: 42, ocr: 100, conf: 99 },
-    { file: 'scanned_form_09.pdf', status: 'failed', time: '4.1s', contacts: 0, ocr: 41, conf: 22 },
-    { file: 'email_signature.png', status: 'pending', time: '--', contacts: 0, ocr: null, conf: null },
-];
-
-/* ---------------- processing queue ---------------- */
-
-async function loadProcessingQueueView(forceSkeleton = false) {
-    const tbody = document.getElementById("queueBody");
-
-    if (!tbody) {
-        console.error("queueBody element not found in HTML");
-        return;
-    }
-
-    if (forceSkeleton) {
-        tbody.innerHTML = Array.from({ length: 4 }).map(() => `
-            <tr>
-                <td colspan="7">
-                    <span class="skeleton"></span>
-                </td>
-            </tr>
-        `).join("");
-    }
-
-    try {
-        const response = await fetch("/processing-queue");
-
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        console.log("Processing Queue Data:", data);
-
-        renderQueue(data);
-
-    } catch (error) {
-        console.error("Processing queue loading failed:", error);
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    Unable to load processing queue.
-                </td>
-            </tr>
-        `;
-    }
-}
-
-
-function renderQueue(rows) {
-    const tbody = document.getElementById("queueBody");
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7">No files in processing queue.</td>
-            </tr>
-        `;
-        return;
-    }
-
-    tbody.innerHTML = rows.map((row, index) => {
-
-        const status = row.status.toLowerCase();
-
-        let statusClass = "pending";
-
-        if (status === "completed") {
-            statusClass = "completed";
-        } else if (status === "processing") {
-            statusClass = "running";
-        } else if (status === "failed") {
-            statusClass = "failed";
-        }
-
-        return `
-            <tr style="animation-delay:${index * 0.06}s">
-
-                <td>${row.filename}</td>
-
-                <td>
-                    <span class="badge ${statusClass}">
-                        ${row.status}
-                    </span>
-                </td>
-
-                <td>${row.time}</td>
-
-                <td>${row.contacts}</td>
-
-                <td>${row.accuracy}</td>
-
-                <td>${row.confidence}</td>
-
-               
-                  <td>
-                    <button class="row-action" title="View">
-                        <i class="fa-solid fa-eye"></i>
-                    </button>
-                </td>
-
-            </tr>
-        `;
-    }).join("");
-}
-
-/* ---------------- activity timeline ---------------- */
-const demoActivity = [
-    { type: 'success', icon: 'fa-check', title: 'Resume processed', detail: 'resume_bulk_042.docx • 2 seconds ago' },
-    { type: 'info', icon: 'fa-wand-magic-sparkles', title: 'OCR completed', detail: 'visiting_card_017.jpg • 1 minute ago' },
-    { type: 'warn', icon: 'fa-clone', title: 'Duplicate contact detected', detail: 'John Doe • 96% match confidence' },
-    { type: 'success', icon: 'fa-file-import', title: 'Spreadsheet imported', detail: 'contacts_master.xlsx • 42 contacts added' },
-    { type: 'danger', icon: 'fa-triangle-exclamation', title: 'Processing failed', detail: 'scanned_form_09.pdf • low OCR confidence' },
-];
-
-async function loadTimeline() {
-    const data = await safeFetch('/logs', []);
-
-    console.log("Timeline data:", data);
-
-    const timeline = document.getElementById('timeline');
-
-    if (!timeline) return;
-
-    
-
-
-    timeline.innerHTML = data.map((item, i) => {
-
-        let type = 'info';
-        let icon = 'fa-file';
-        let title = 'File processed';
-
-        if (item.status === 'success') {
-            type = 'success';
-            icon = 'fa-check';
-            title = 'Contact saved successfully';
-        } 
-        else if (item.status === 'duplicate') {
-            type = 'warn';
-            icon = 'fa-clone';
-            title = 'Duplicate contact detected';
-        } 
-        else if (item.status === 'failed') {
-            type = 'danger';
-            icon = 'fa-triangle-exclamation';
-            title = 'Processing failed';
-        }
-
-        return `
-            <div class="timeline-item" style="animation-delay:${i * 0.08}s">
-                <div class="timeline-icon ${type}">
-                    <i class="fa-solid ${icon}"></i>
-                </div>
-
-                <div class="timeline-text">
-                    <h4>${title}</h4>
-                    <p>${item.file}</p>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-/* ---------------- AI health panel ---------------- */
-const demoHealth = {
-    statuses: [
-        { label: 'OCR Engine', up: true },
-        { label: 'LLM Service', up: true },
-        { label: 'Database', up: true },
-        { label: 'API Gateway', up: true },
-    ],
-    metrics: [
-        { label: 'Storage', percent: 61 },
-        { label: 'CPU', percent: 42 },
-        { label: 'Memory', percent: 68 },
-    ]
-};
-
-async function loadHealth() {
-    try {
-        const response = await fetch('/status');
-
-        if (!response.ok) {
-            throw new Error(`HTTP error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        console.log("AI Health Data:", data);
-
-        const grid = document.getElementById('healthGrid');
-
-        const statuses = [
-            {
-                label: 'ContactIQ Pipeline',
-                up: data.status === 'running'
-            },
-            {
-                label: 'Database',
-                up: true
-            },
-            {
-                label: 'API Server',
-                up: true
-            }
-        ];
-
-        const metrics = [
-            {
-                label: 'Processing Accuracy',
-                percent: data.processing_accuracy
-            },
-            {
-                label: 'Files Processed',
-                value: data.total_files
-            },
-            {
-                label: 'Contacts Extracted',
-                value: data.total_contacts
-            }
-        ];
-
-        const statusCards = statuses.map(s => `
-            <div class="health-card">
-                <h4>${s.label}</h4>
-
-                <span class="health-pill ${s.up ? '' : 'down'}">
-                    <i class="fa-solid fa-circle pulse-dot"></i>
-                    ${s.up ? 'Operational' : 'Down'}
-                </span>
-            </div>
-        `).join('');
-
-        const metricCards = metrics.map(m => `
-            <div class="health-card">
-                <h4>${m.label}</h4>
-
-                ${
-                    m.percent !== undefined
-                    ? `
-                        <div class="health-ring"
-                             style="--p:${m.percent}"
-                             data-target="${m.percent}">
-                            <span>${m.percent}%</span>
-                        </div>
-                    `
-                    : `<strong class="health-value">${m.value}</strong>`
-                }
-            </div>
-        `).join('');
-
-        grid.innerHTML = statusCards + metricCards;
-
-    } catch (error) {
-        console.error("AI Health Panel loading failed:", error);
-    }
-}
-
-/* ---------------- charts ---------------- */
-let trendChartInstance = null;
-let dupChartInstance = null;
-let ocrChartInstance = null;
-let confChartInstance = null;
-let analyticsTrendInstance = null;
-let analyticsDupInstance = null;
-let analyticsOcrInstance = null;
-let analyticsConfInstance = null;
-function chartTheme(){
-    const styles = getComputedStyle(document.documentElement);
-    return {
-        text: styles.getPropertyValue('--text-1').trim() || '#c6cbdc',
-        grid: 'rgba(255,255,255,.06)',
-        accent: styles.getPropertyValue('--accent').trim() || '#6366f1',
-        accent2: styles.getPropertyValue('--accent-2').trim() || '#06b6d4',
-        success: '#10b981',
-        warn: '#f59e0b',
-        danger: '#ef4444',
-    };
-}
-
-async function initCharts(){
-    const chartIds = ['trendChart', 'dupChart', 'ocrChart', 'confChart'];
-
-    chartIds.forEach(id => {
-        const canvas = document.getElementById(id);
-
-        if (canvas) {
-            const existingChart = Chart.getChart(canvas);
-
-            if (existingChart) {
-                existingChart.destroy();
-            }
-        }
-    });
-    const t = chartTheme();
-
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = t.text;
-
-    try {
-        const response = await fetch(`${API_BASE}/analytics`);
-
-        if (!response.ok) {
-            throw new Error(`Analytics API failed: ${response.status}`);
-        }
-
-        const analyticsData = await response.json();
-
-        console.log("Analytics Data:", analyticsData);
-
-        if (trendChartInstance) trendChartInstance.destroy();
-        if (dupChartInstance) dupChartInstance.destroy();
-        if (ocrChartInstance) ocrChartInstance.destroy();
-        if (confChartInstance) confChartInstance.destroy();
-
-        trendChartInstance = new Chart(document.getElementById('trendChart'), {
-            type: 'line',
-            data: {
-                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-                datasets: [{
-                    label: 'Files processed',
-                    data: analyticsData.files_processed,
-                    borderColor: t.accent2,
-                    backgroundColor: `${t.accent2}22`,
-                    fill: true,
-                    tension: .4,
-                    pointRadius: 0,
-                    borderWidth: 2,
-                }]
-            },
-            options: chartOptions(t)
-        });
-
-        dupChartInstance = new Chart(document.getElementById('dupChart'), {
-            type: 'bar',
-            data: {
-                labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-                datasets: [{
-                    label: 'Duplicates found',
-                    data: analyticsData.duplicates_found,
-                    backgroundColor: t.warn,
-                    borderRadius: 6,
-                    maxBarThickness: 26,
-                }]
-            },
-            options: chartOptions(t)
-        });
-
-        ocrChartInstance = new Chart(document.getElementById('ocrChart'), {
-            type: 'doughnut',
-            data: {
-                labels: ['High confidence', 'Medium', 'Low'],
-                datasets: [{
-                    data: analyticsData.ocr_distribution,
-                    backgroundColor: [t.success, t.accent2, t.danger],
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 10,
-                            padding: 16
-                        }
-                    }
-                },
-                cutout: '68%',
-            }
-        });
-
-        confChartInstance = new Chart(document.getElementById('confChart'), {
-            type: 'line', 
-            data: {
-                labels: ['W1','W2','W3','W4','W5','W6'],
-                datasets: [{
-                    label: 'AI confidence',
-                    data: analyticsData.ai_confidence,
-                    borderColor: t.accent,
-                    backgroundColor: `${t.accent}22`,
-                    fill: true,
-                    tension: .45,
-                    pointRadius: 0,
-                    borderWidth: 2,
-                }]
-            },
-            options: chartOptions(t)
-        });
-
-    } catch (error) {
-        console.error("Failed to load analytics:", error);
-    }
-}
-
-
-function chartOptions(t){
-    return {
-        plugins: { legend: { display: false } },
-        scales: {
-            x: { grid: { color: t.grid }, ticks: { color: t.text } },
-            y: { grid: { color: t.grid }, ticks: { color: t.text } },
-        },
-        maintainAspectRatio: false,
-        responsive: true,
-    };
-}
-
-/* ---------------- run processing action ---------------- */
-async function runProcessing() {
-    const processBtn = document.getElementById('processBtn');
-
-    processBtn.disabled = true;
-    processBtn.innerHTML = `
-        <i class="fa-solid fa-spinner fa-spin"></i>
-        Processing...
-    `;
-
-    showToast(
-        'Processing started…',
-        'info',
-        'fa-play'
-    );
-
-    // Remember when processing started
-    const startTime = Date.now();
-
-    try {
-        const res = await fetch(`${API_BASE}/process-folder`, {
-            method: 'POST'
-        });
-
-        if (!res.ok) {
-            throw new Error(`Request failed with status ${res.status}`);
-        }
-
-        const result = await res.json();
-
-        console.log('Processing result:', result);
-
-        // Refresh all live dashboard sections
-        await loadDashboard();
-        await loadQueue();
-        await loadTimeline();
-        await loadHealth();
-        await initCharts();
-         //await loadDuplicates();
-
-        // Keep Processing... visible for at least 1 second
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, 1000 - elapsed);
-
-        if (remaining > 0) {
-            await new Promise(resolve => setTimeout(resolve, remaining));
-        }
-
-        showToast(
-            'Processing completed successfully',
-            'success',
-            'fa-circle-check'
-        );
-
-    } catch (err) {
-        console.error('[ContactIQ] Processing failed:', err);
-
-        showToast(
-            'Processing failed. Please check the backend.',
-            'danger',
-            'fa-triangle-exclamation'
-        );
-
-    } finally {
-        processBtn.disabled = false;
-        processBtn.innerHTML = `
-            <i class="fa-solid fa-play"></i>
-            Run Processing
-        `;
-    }
-}
-
-
-async function loadAnalyticsView() {
-
-    try {
-        const response = await fetch(`${API_BASE}/analytics`);
-
-        if (!response.ok) {
-            throw new Error(`Analytics API failed: ${response.status}`);
-        }
-
-        const analyticsData = await response.json();
-
-        console.log("Analytics View Data:", analyticsData);
-
-        const t = chartTheme();
-
-        // Destroy old chart instances before creating new ones
-        if (analyticsTrendInstance) {
-            analyticsTrendInstance.destroy();
-        }
-
-        if (analyticsDupInstance) {
-            analyticsDupInstance.destroy();
-        }
-
-        if (analyticsOcrInstance) {
-            analyticsOcrInstance.destroy();
-        }
-
-        if (analyticsConfInstance) {
-            analyticsConfInstance.destroy();
-        }
-
-        // 1. Files Processed
-        analyticsTrendInstance = new Chart(
-            document.getElementById('analyticsTrendChart'),
-            {
-                type: 'line',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Files processed',
-                        data: analyticsData.files_processed,
-                        borderColor: t.accent2,
-                        backgroundColor: `${t.accent2}22`,
-                        fill: true,
-                        tension: .4,
-                        pointRadius: 0,
-                        borderWidth: 2
-                    }]
-                },
-                options: chartOptions(t)
-            }
-        );
-
-        // 2. Duplicates Found
-        analyticsDupInstance = new Chart(
-            document.getElementById('analyticsDupChart'),
-            {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Duplicates found',
-                        data: analyticsData.duplicates_found,
-                        backgroundColor: t.warn,
-                        borderRadius: 6,
-                        maxBarThickness: 26
-                    }]
-                },
-                options: chartOptions(t)
-            }
-        );
-
-        // 3. OCR Confidence Distribution
-        analyticsOcrInstance = new Chart(
-            document.getElementById('analyticsOcrChart'),
-            {
-                type: 'doughnut',
-                data: {
-                    labels: ['High confidence', 'Medium', 'Low'],
-                    datasets: [{
-                        data: analyticsData.ocr_distribution,
-                        backgroundColor: [
-                            t.success,
-                            t.accent2,
-                            t.danger
-                        ],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 10,
-                                padding: 16
-                            }
-                        }
-                    },
-                    cutout: '68%',
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            }
-        );
-
-        // 4. AI Confidence
-        analyticsConfInstance = new Chart(
-            document.getElementById('analyticsConfChart'),
-            {
-                type: 'line',
-                data: {
-                    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'],
-                    datasets: [{
-                        label: 'AI confidence',
-                        data: analyticsData.ai_confidence,
-                        borderColor: t.accent,
-                        backgroundColor: `${t.accent}22`,
-                        fill: true,
-                        tension: .45,
-                        pointRadius: 0,
-                        borderWidth: 2
-                    }]
-                },
-                options: chartOptions(t)
-            }
-        );
-
-    } catch (error) {
-        console.error("Failed to load Analytics View:", error);
-    }
-}
-
-
-
-/* ================= CONTACTS VIEW ================= */
-
-let allContacts = [];
-
-async function loadContacts() {
-    const tableBody = document.getElementById('contactsTableBody');
-    const countText = document.getElementById('contactsCount');
-
-    if (!tableBody) return;
-
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="8">Loading contacts...</td>
-        </tr>
-    `;
-
-    try {
-        const response = await fetch(`${API_BASE}/contacts`);
-
-        if (!response.ok) {
-            throw new Error(`Contacts API failed: ${response.status}`);
-        }
-
-        allContacts = await response.json();
-
-        console.log("Contacts Data:", allContacts);
-
-        renderContacts(allContacts);
-
-    } catch (error) {
-        console.error("Failed to load contacts:", error);
-
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8">Failed to load contacts.</td>
-            </tr>
-        `;
-
-        if (countText) {
-            countText.textContent = 'Unable to load contacts';
-        }
-    }
-}
-
-
-function renderContacts(contacts) {
-    const tableBody = document.getElementById('contactsTableBody');
-    const countText = document.getElementById('contactsCount');
-
-    if (!tableBody) return;
-
-    if (countText) {
-        countText.textContent = `${contacts.length} contact${contacts.length !== 1 ? 's' : ''} found`;
-    }
-
-    if (contacts.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8">No contacts found.</td>
-            </tr>
-        `;
-        return;
-    }
-
-    tableBody.innerHTML = contacts.map(contact => {
-        console.log(contact);
-
-        const location = [contact.city, contact.country]
-            .filter(Boolean)
-            .join(', ') || '—';
-
-        const confidence = contact.confidence != null
-            ? `${contact.confidence}%`
-            : '—';
-
-        return `
-            <tr>
-                <td>
-                    <strong>${contact.full_name || 'Unknown'}</strong>
-                </td>
-
-                <td>${contact.email || '—'}</td>
-
-                <td>${contact.phone || '—'}</td>
-
-                <td>${contact.organization || '—'}</td>
-
-                <td>${contact.designation || '—'}</td>
-
-                <td>${location}</td>
-
-                <td>
-                    <span class="status-pill success">
-                        ${confidence}
-                    </span>
-                </td>
-
-                <td>
-                    <button class="row-action"
-                            onclick='viewContact(${JSON.stringify(contact)})'
-                            title="View">
-                        <i class="fa-solid fa-eye"></i>
-                    </button>
-                </td>
-                </tr>
-        `;
-    }).join('');
-}
+/* ============================================================
+   Boot
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+    applyTheme(state.theme);
+    initLoader();
+    initSidebar();
+    initTopbar();
+    initRefreshButtons();
+    initRippleButtons();
+    initRevealOnScroll();
+    initToasts();
+
+    updateGreetingAndDate();
+    setInterval(updateGreetingAndDate, 60000);
+
+    await loadDashboardAll();
 });
-
-function viewContact(contact) {
-    alert(JSON.stringify(contact, null, 2));
-}
