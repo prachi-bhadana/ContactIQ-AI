@@ -10,7 +10,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 
 <link rel="stylesheet" href="/static/style.css">
 
@@ -31,8 +30,6 @@
     </div>
     <p>Booting ContactIQ intelligence layer…</p>
 </div>
-
-<div class="toast-container" id="toastContainer"></div>
 
 <div class="app">
 
@@ -485,7 +482,6 @@
                         <i class="fa-solid fa-arrow-up-right-from-square"></i> View API Docs
                     </button>
                 </div>
-                <p class="sync-note" id="lastSync">Last synced: —</p>
             </section>
 
             <section class="kpi-grid reveal" id="kpiGrid">
@@ -542,7 +538,7 @@
                     <div class="kpi-ring"><i class="fa-solid fa-eye"></i></div>
                     <div class="kpi-text">
                         <h2><span class="count" id="ocrConfidence">0%</span></h2>
-                        <p>OCR Confidence</p>
+                        <p>Avg. OCR Confidence</p>
                     </div>
                 </div>
 
@@ -550,89 +546,184 @@
                     <div class="kpi-ring"><i class="fa-solid fa-brain"></i></div>
                     <div class="kpi-text">
                         <h2><span class="count" id="aiConfidence">0%</span></h2>
-                        <p>AI Confidence</p>
+                        <p>Avg. AI Confidence</p>
                     </div>
                 </div>
 
             </section>
 
-            <!-- Main dashboard widgets: queue preview, recent activity, OCR preview, trend graph -->
-            <section class="dashboard-widgets-grid reveal">
+            <section class="panel-grid reveal">
 
-                <div class="panel widget-card">
+                <div class="panel queue-panel">
+
                     <div class="panel-head">
                         <div>
-                            <h2><i class="fa-solid fa-layer-group"></i> Processing Queue</h2>
-                            <p>Most recent files through the pipeline</p>
+                            <h2>
+                                <i class="fa-solid fa-list-check"></i>
+                                Processing Queue
+                            </h2>
+                            <p>Live document pipeline status</p>
                         </div>
+
+                        <button class="btn-small" id="refreshQueue">
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
                     </div>
+
                     <div class="table-wrap">
+
                         <table class="queue-table">
+
                             <thead>
                                 <tr>
-                                    <th>File</th>
+                                    <th>File Name</th>
                                     <th>Status</th>
+                                    <th>Time</th>
+                                    <th>Contacts</th>
+                                    <th>OCR Accuracy</th>
                                     <th>Confidence</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="queuePreviewBody">
-                                <tr><td colspan="3" class="empty-cell">Loading…</td></tr>
+
+                            <tbody id="queueBody">
+                                <!-- Real backend data will be inserted here -->
                             </tbody>
+
                         </table>
-                    </div>
-                </div>
 
-                <div class="panel widget-card">
-                    <div class="panel-head">
-                        <div>
-                            <h2><i class="fa-solid fa-file-waveform"></i> OCR Logs</h2>
-                            <p>Latest extraction results</p>
-                        </div>
                     </div>
-                    <div class="table-wrap">
-                        <table class="queue-table">
-                            <thead>
-                                <tr>
-                                    <th>File</th>
-                                    <th>Status</th>
-                                    <th>OCR Confidence</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ocrPreviewBody">
-                                <tr><td colspan="3" class="empty-cell">Loading…</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
 
-                <div class="panel widget-card">
-                    <div class="panel-head">
-                        <div>
-                            <h2><i class="fa-solid fa-clock-rotate-left"></i> Recent Activity</h2>
-                            <p>Pipeline event timeline</p>
-                        </div>
-                    </div>
-                    <ul class="activity-list" id="recentActivityList">
-                        <li class="empty-cell">Loading…</li>
-                    </ul>
-                </div>
-
-                <div class="panel widget-card chart-card">
-                    <div class="chart-header">
-                        <h3>Analytics Graph</h3>
-                        <p>Files processed trend</p>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="trendChart"></canvas>
-                    </div>
                 </div>
 
             </section>
+
+
+            <section class="panel-grid reveal">
+
+                <div class="panel activity-panel">
+
+                    <div class="panel-head">
+                        <div>
+                            <h2>
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                Recent Activity
+                            </h2>
+                            <p>Latest pipeline events</p>
+                        </div>
+                    </div>
+
+                    <div class="timeline" id="timeline">
+                        <!-- Real backend activity will be inserted here -->
+                    </div>
+
+                </div>
+
+            </section> 
+
+
+
+            <!-- ================= ANALYTICS SECTION ================= -->
+
+            <section class="analytics-section reveal">
+
+                <div class="panel-head">
+                    <div>
+                        <h2>
+                            <i class="fa-solid fa-chart-line"></i>
+                            Analytics
+                        </h2>
+                        <p>Real-time AI extraction and processing insights</p>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+
+                    <!-- Files Processed Trend -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Files Processed</h3>
+                            <p>Processing activity over time</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- Duplicates Found -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>Duplicates Found</h3>
+                            <p>Duplicate contacts detected</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="dupChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- OCR Confidence Distribution -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>OCR Confidence Distribution</h3>
+                            <p>High, medium and low confidence results</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="ocrChart"></canvas>
+                        </div>
+                    </div>
+
+
+                    <!-- AI Confidence -->
+                    <div class="panel chart-card">
+                        <div class="chart-header">
+                            <h3>AI Confidence</h3>
+                            <p>LLM extraction confidence trend</p>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="confChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+
+
+
+
+            <section class="health-section reveal">
+                <div class="panel-head">
+                    <div>
+                        <h2><i class="fa-solid fa-heart-pulse"></i> AI Health Panel</h2>
+                        <p>Live system diagnostics</p>
+                    </div>
+                </div>
+                <div class="health-grid" id="healthGrid">
+                    <!-- populated by script.js -->
+                </div>
+            </section>
+
+            <footer class="page-footer">
+                <p>ContactIQ AI — extraction pipeline console</p>
+                <p id="lastSync">Last synced moments ago</p>
+            </footer>
 
         </main>
     </div>
 </div>
 
-<script src="/static/script.js"></script>
+<div class="toast-container" id="toastContainer"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script defer src="/static/script.js"></script>
+
 </body>
 </html>
