@@ -12,6 +12,15 @@ const state = {
     sidebarCollapsed: false,
 };
 
+/* Chart instance trackers — declared here (rather than further down where
+   they're conceptually grouped with the other chart helpers) because
+   initCharts() runs during the boot sequence below, before execution would
+   otherwise reach those declarations. */
+let trendChartInstance = null;
+let dupChartInstance = null;
+let ocrChartInstance = null;
+let confChartInstance = null;
+
 
 
 
@@ -161,7 +170,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 processingQueueMenu.classList.add('active');
 
                 // Load real processing queue data
-                await loadProcessingQueueView();
+                await loadProcessingQueueSidebarView();
             });
         }
 
@@ -327,7 +336,7 @@ async function loadDuplicates() {
 
 async function loadOCRLogs() {
     const tableBody = document.getElementById('ocrLogsTableBody');
-    const logsCount = document.getElementById('ocrLogsCount');
+    const logsCount = document.getElementById('ocrLogsSummary');
 
     try {
         const response = await fetch(`${API_BASE}/logs`);
@@ -383,9 +392,10 @@ async function loadOCRLogs() {
                 logsCount.textContent = 'Failed to load OCR logs.';
             }
         }
+}
 
 
-async function loadProcessingQueueView() {
+async function loadProcessingQueueSidebarView() {
     try {
         const response = await fetch(`${API_BASE}/processing-queue`);
 
@@ -418,7 +428,7 @@ async function loadProcessingQueueView() {
             const row = document.createElement('tr');
 
             row.innerHTML = `
-                <td>${item.file || 'Unknown'}</td>
+                <td>${item.filename || 'Unknown'}</td>
 
                 <td>
                     <span class="status ${item.status || ''}">
@@ -430,7 +440,7 @@ async function loadProcessingQueueView() {
 
                 <td>${item.contacts ?? 0}</td>
 
-                <td>${item.ocr_accuracy ?? '—'}</td>
+                <td>${item.accuracy ?? '—'}</td>
 
                 <td>${item.confidence ?? '—'}</td>
 
@@ -455,7 +465,35 @@ const refreshProcessingQueueBtn =
 
 if (refreshProcessingQueueBtn) {
     refreshProcessingQueueBtn.addEventListener('click', async () => {
+        await loadProcessingQueueSidebarView();
+    });
+}
+
+const refreshQueueBtn = document.getElementById('refreshQueue');
+if (refreshQueueBtn) {
+    refreshQueueBtn.addEventListener('click', async () => {
         await loadProcessingQueueView();
+    });
+}
+
+const refreshContactsBtn = document.getElementById('refreshContactsBtn');
+if (refreshContactsBtn) {
+    refreshContactsBtn.addEventListener('click', async () => {
+        await loadContacts();
+    });
+}
+
+const refreshDuplicatesBtn = document.getElementById('refreshDuplicatesBtn');
+if (refreshDuplicatesBtn) {
+    refreshDuplicatesBtn.addEventListener('click', async () => {
+        await loadDuplicates();
+    });
+}
+
+const refreshOcrLogsBtn = document.getElementById('refreshOcrLogsBtn');
+if (refreshOcrLogsBtn) {
+    refreshOcrLogsBtn.addEventListener('click', async () => {
+        await loadOCRLogs();
     });
 }
 
@@ -472,9 +510,7 @@ if (refreshProcessingQueueBtn) {
     document.getElementById('notifBtn').addEventListener('click', () => {
         showToast('3 files finished processing in the last hour', 'info', 'fa-bell');
     });
-};
-
-/* ---------------- loader ---------------- */
+});
 function initLoader(){
     const overlay = document.getElementById('loaderOverlay');
     window.addEventListener('load', () => {
@@ -892,10 +928,6 @@ async function loadHealth() {
 }
 
 /* ---------------- charts ---------------- */
-let trendChartInstance = null;
-let dupChartInstance = null;
-let ocrChartInstance = null;
-let confChartInstance = null;
 let analyticsTrendInstance = null;
 let analyticsDupInstance = null;
 let analyticsOcrInstance = null;
@@ -1075,7 +1107,7 @@ async function runProcessing() {
 
         // Refresh all live dashboard sections
         await loadDashboard();
-        await loadQueue();
+        await loadProcessingQueueView();
         await loadTimeline();
         await loadHealth();
         await initCharts();
@@ -1314,7 +1346,7 @@ function renderContacts(contacts) {
         return;
     }
 
-    tableBody.innerHTML = contacts.map(contact => {
+    tableBody.innerHTML = contacts.map((contact, idx) => {
         console.log(contact);
 
         const location = [contact.city, contact.country]
@@ -1349,7 +1381,7 @@ function renderContacts(contacts) {
 
                 <td>
                     <button class="row-action"
-                            onclick='viewContact(${JSON.stringify(contact)})'
+                            data-view-contact="${idx}"
                             title="View">
                         <i class="fa-solid fa-eye"></i>
                     </button>
@@ -1357,8 +1389,15 @@ function renderContacts(contacts) {
                 </tr>
         `;
     }).join('');
+
+    tableBody.querySelectorAll('[data-view-contact]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = Number(btn.dataset.viewContact);
+            const contact = contacts[idx];
+            if (contact) viewContact(contact);
+        });
+    });
 }
-});
 
 function viewContact(contact) {
     alert(JSON.stringify(contact, null, 2));
