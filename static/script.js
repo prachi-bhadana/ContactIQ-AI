@@ -1,4 +1,4 @@
-/* ============================================================
+   /* ============================================================
    ContactIQ AI — Dashboard Logic
    Vanilla ES6. Fetches live data from the FastAPI backend and
    falls back to demo data if an endpoint isn't reachable, so the
