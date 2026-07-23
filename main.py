@@ -556,30 +556,40 @@ def get_contacts():
 @app.get("/dashboard-data")
 def dashboard_data():
     db = SessionLocal()
+    try:
+        total_contacts = db.query(Contact).count()
+        total_files = len(processed_files)
 
-    total_contacts = db.query(Contact).count()
+        new_contacts = sum(
+            1 for log in processing_logs if log.get("status") == "success"
+        )
 
-    # You can replace these with real values later
-    total_files = total_contacts
-    new_contacts = total_contacts
-    duplicate_contacts = 0
-    failed_files = 0
-    processing_accuracy = 98
-    ocr_confidence = 95
-    ai_confidence = 97
+        duplicate_contacts = sum(
+            1 for log in processing_logs if log.get("status") == "duplicate"
+        )
 
-    db.close()
+        failed_files = sum(
+            1 for log in processing_logs if log.get("status") == "failed"
+        )
+        processing_accuracy = 98
+        ocr_confidence = 95
+        ai_confidence = 97
 
-    return {
-        "total_files": total_files,
-        "contacts": total_contacts,
-        "new_contacts": new_contacts,
-        "duplicates": duplicate_contacts,
-        "failed": failed_files,
-        "accuracy": processing_accuracy,
-        "ocr_confidence": ocr_confidence,
-        "ai_confidence": ai_confidence
-    }
+        db.close()
+
+        return {
+            "total_files": total_files,
+            "contacts": total_contacts,
+            "new_contacts": new_contacts,
+            "duplicates": duplicate_contacts,
+            "failed": failed_files,
+            "accuracy": processing_accuracy,
+            "ocr_confidence": ocr_confidence,
+            "ai_confidence": ai_confidence
+        }
+    finally:
+        db.close()
+    
     
     
 STATUS_LABELS = {
@@ -838,7 +848,7 @@ Resume Text:
     except json.JSONDecodeError:
         return {
             "status": "error",
-            "message": "Invalid JSON returned by Gemini.",
+            "message": "Invalid JSON returned by the AI .",
             "raw_response": response.choices[0].message.content
         }
         
