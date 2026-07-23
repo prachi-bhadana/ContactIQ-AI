@@ -1,9 +1,4 @@
-# ContactIQ AI
-
-## Hero Section
-
 # 🚀 ContactIQ AI
-
 > AI-Powered Contact Intelligence Platform
 
 Extract structured contact information from resumes, business cards, PDFs, images, DOCX, DOC, TXT, CSV and Excel files using AI + OCR and automatically organize them into a searchable CRM dashboard. 
