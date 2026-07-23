@@ -18,8 +18,6 @@ from fastapi import Request
 load_dotenv()
 api_key = os.getenv("OPENROUTER_API_KEY")
 
-Base.metadata.create_all(bind=engine)
-
 client = OpenAI(
     api_key=api_key,
     base_url="https://openrouter.ai/api/v1"
@@ -77,19 +75,22 @@ def get_status():
 
 @app.get("/contact/{contact_id}")
 def get_contact(contact_id: int):
-
     db = SessionLocal()
 
-    contact = db.query(Contact).filter(
-        Contact.id == contact_id
-    ).first()
+    try:
+        contact = db.query(Contact).filter(
+            Contact.id == contact_id
+        ).first()
 
-    if not contact:
-        return {
-            "message": "Contact not found."
-        }
+        if not contact:
+            return {
+                "message": "Contact not found."
+            }
 
-    return contact
+        return contact
+
+    finally:
+        db.close()
 
 @app.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request):
@@ -109,38 +110,56 @@ def search_contacts(
 ):
     db = SessionLocal()
 
-    query = db.query(Contact)
+    try:
+        query = db.query(Contact)
 
-    if name:
-        query = query.filter(Contact.full_name.ilike(f"%{name}%"))
+        if name:
+            query = query.filter(Contact.full_name.ilike(f"%{name}%"))
 
-    if email:
-        query = query.filter(Contact.email.ilike(f"%{email}%"))
+        if email:
+            query = query.filter(Contact.email.ilike(f"%{email}%"))
 
-    if phone:
-        query = query.filter(Contact.phone.ilike(f"%{phone}%"))
+        if phone:
+            query = query.filter(Contact.phone.ilike(f"%{phone}%"))
 
-    return query.all()
+        return query.all()
+
+    finally:
+        db.close()  
 
 
 
 
 def save_contact(new_contact):
     db = SessionLocal()
-    phone = new_contact.get("PhoneNumber")
-    if phone:
-        phone = phone.replace(" ", "")
-        phone = phone.replace("-", "")
-        phone = phone.replace("+91", "")
+    
+    try: 
+        phone = new_contact.get("PhoneNumber")
+        if phone:
+            phone = phone.replace(" ", "")
+            phone = phone.replace("-", "")
+            phone = phone.replace("+91", "")
+            
         
-    
-    email = new_contact.get("Email")
-    if email :
-        email = email.strip().lower()
-    
-    name = new_contact.get("FullName")
-    if name:
-        name = " ".join(name.split()).title()
+        email = new_contact.get("Email")
+        if email :
+            email = email.strip().lower()
+        
+        name = new_contact.get("FullName")
+        if name:
+            name = " ".join(name.split()).title()
+
+            db.add(new_db_contact)
+            db.commit()
+            db.refresh(new_db_contact)
+
+            return {
+                "message": "Contact saved successfully.",
+                "contact": new_db_contact.full_name
+        }
+
+    finally:
+        db.close()
     
     
 
@@ -361,7 +380,7 @@ def process_single_file(file_path):
                 print("EXCEL found")
                 
                 
-                text = read_csv(file_path)
+                text = read_excel(file_path)
                 print("Excel read Successfully")
         
                 contact = process_text(text)
@@ -381,7 +400,7 @@ def process_single_file(file_path):
                 print("DOC found")
                 
                 
-                text = read_csv(file_path)
+                text = read_doc(file_path)
                 print("DOC read Successfully")
         
                 contact = process_text(text)
