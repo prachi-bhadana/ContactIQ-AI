@@ -149,109 +149,100 @@ def save_contact(new_contact):
         if name:
             name = " ".join(name.split()).title()
 
-            db.add(new_db_contact)
-            db.commit()
-            db.refresh(new_db_contact)
+            
 
+        existing_contact = None
+
+        if phone:
+            existing_contact = db.query(Contact).filter(
+                Contact.phone == phone
+            ).first()
+
+        if not existing_contact and email:
+            existing_contact = db.query(Contact).filter(
+                Contact.email == email
+            ).first()
+
+        if not phone and not email:
             return {
-                "message": "Contact saved successfully.",
-                "contact": new_db_contact.full_name
-        }
+                "message": "Contact skipped because phone and email are missing."
+            }
 
+        if existing_contact:
+            return {
+                "message": "Duplicate contact found.",
+                "existing_contact": existing_contact.full_name
+            }
+        print(new_contact)
+        new_db_contact = Contact(
+
+
+        full_name=name,
+        first_name=new_contact.get("FirstName"),
+        last_name=new_contact.get("LastName"),
+
+        email=email,
+        alternate_email=new_contact.get("AlternateEmail"),
+
+        phone=phone,
+        alternate_phone=new_contact.get("AlternatePhone"),
+
+        organization=new_contact.get("Company"),
+        designation=new_contact.get("Designation"),
+        occupation=new_contact.get("Occupation"),
+
+        experience_years=new_contact.get("ExperienceYears"),
+        experience_months=new_contact.get("ExperienceMonths"),
+        industry=new_contact.get("Industry"),
+
+        current_address=new_contact.get("CurrentAddress"),
+        permanent_address=new_contact.get("PermanentAddress"),
+
+        city=new_contact.get("City"),
+        state=new_contact.get("State"),
+        country=new_contact.get("Country"),
+
+        gender=new_contact.get("Gender"),
+        marital_status=new_contact.get("MaritalStatus"),
+        date_of_birth=new_contact.get("DateOfBirth"),
+        nationality=new_contact.get("Nationality"),
+        language=new_contact.get("Language"),
+        religion=new_contact.get("Religion"),
+        education=new_contact.get("Education"),
+
+        pan=new_contact.get("PAN"),
+        aadhaar=new_contact.get("Aadhaar"),
+
+        linkedin=new_contact.get("LinkedIn"),
+        facebook=new_contact.get("Facebook"),
+        instagram=new_contact.get("Instagram"),
+        twitter=new_contact.get("Twitter"),
+        website=new_contact.get("Website"),
+        youtube=new_contact.get("YouTube"),
+
+        primary_expertise=new_contact.get("PrimaryExpertise"),
+        alternate_expertise=new_contact.get("AlternateExpertise"),
+
+        skills=", ".join(new_contact.get("Skills", [])),
+        notes=new_contact.get("Notes"),
+
+        confidence=new_contact.get("Confidence"),
+        processing_status=new_contact.get("ProcessingStatus")
+    )
+        
+        db.add(new_db_contact)
+        db.commit()
+        db.refresh(new_db_contact)
+        
+        
+
+        return {
+            "message": "Contact saved successfully.",
+            "contact": new_db_contact.full_name
+        }
+        
     finally:
-        db.close()
-    
-    
-
-    existing_contact = None
-
-    if phone:
-        existing_contact = db.query(Contact).filter(
-            Contact.phone == phone
-        ).first()
-
-    if not existing_contact and email:
-        existing_contact = db.query(Contact).filter(
-            Contact.email == email
-        ).first()
-
-    if not phone and not email:
-        return {
-            "message": "Contact skipped because phone and email are missing."
-        }
-
-    if existing_contact:
-        return {
-            "message": "Duplicate contact found.",
-            "existing_contact": existing_contact.full_name
-        }
-    print(new_contact)
-    new_db_contact = Contact(
-
-
-    full_name=name,
-    first_name=new_contact.get("FirstName"),
-    last_name=new_contact.get("LastName"),
-
-    email=email,
-    alternate_email=new_contact.get("AlternateEmail"),
-
-    phone=phone,
-    alternate_phone=new_contact.get("AlternatePhone"),
-
-    organization=new_contact.get("Company"),
-    designation=new_contact.get("Designation"),
-    occupation=new_contact.get("Occupation"),
-
-    experience_years=new_contact.get("ExperienceYears"),
-    experience_months=new_contact.get("ExperienceMonths"),
-    industry=new_contact.get("Industry"),
-
-    current_address=new_contact.get("CurrentAddress"),
-    permanent_address=new_contact.get("PermanentAddress"),
-
-    city=new_contact.get("City"),
-    state=new_contact.get("State"),
-    country=new_contact.get("Country"),
-
-    gender=new_contact.get("Gender"),
-    marital_status=new_contact.get("MaritalStatus"),
-    date_of_birth=new_contact.get("DateOfBirth"),
-    nationality=new_contact.get("Nationality"),
-    language=new_contact.get("Language"),
-    religion=new_contact.get("Religion"),
-    education=new_contact.get("Education"),
-
-    pan=new_contact.get("PAN"),
-    aadhaar=new_contact.get("Aadhaar"),
-
-    linkedin=new_contact.get("LinkedIn"),
-    facebook=new_contact.get("Facebook"),
-    instagram=new_contact.get("Instagram"),
-    twitter=new_contact.get("Twitter"),
-    website=new_contact.get("Website"),
-    youtube=new_contact.get("YouTube"),
-
-    primary_expertise=new_contact.get("PrimaryExpertise"),
-    alternate_expertise=new_contact.get("AlternateExpertise"),
-
-    skills=", ".join(new_contact.get("Skills", [])),
-    notes=new_contact.get("Notes"),
-
-    confidence=new_contact.get("Confidence"),
-    processing_status=new_contact.get("ProcessingStatus")
-)
-    
-    db.add(new_db_contact)
-    db.commit()
-    db.refresh(new_db_contact)
-    
-    
-
-    return {
-        "message": "Contact saved successfully.",
-        "contact": new_db_contact.full_name
-    }
+            db.close()
     
 
     
@@ -272,7 +263,7 @@ def extract(data: ContactInput):
 def compare(data: CompareInput):
     return compare_contacts(
         data.contact1,
-        data.contact2
+        data.contact2 
     )
 
 def process_single_file(file_path):
